@@ -103,25 +103,6 @@ namespace BarcopoloWebApi.Services
                     .Select(o => o.OriginAddress)
                     .FirstOrDefaultAsync();
 
-            if (addressToInherit != null)
-            {
-                var inheritedAddress = new Address
-                {
-                    PersonId = dto.PersonId,
-                    City = addressToInherit.City,
-                    Province = addressToInherit.Province,
-                    FullAddress = addressToInherit.FullAddress,
-                    Title = addressToInherit.Title ?? "آدرس سازمان",
-                    PostalCode = addressToInherit.PostalCode,
-                    Plate = addressToInherit.Plate,
-                    Unit = addressToInherit.Unit,
-                    AdditionalInfo = addressToInherit.AdditionalInfo
-                };
-
-                _context.Addresses.Add(inheritedAddress);
-                _logger.LogInformation("آدرس سازمان/شعبه برای کاربر {PersonId} به ارث رسید", dto.PersonId);
-            }
-
             await _context.SaveChangesAsync();
             _logger.LogInformation("عضویت برای شخص {PersonId} با نقش {Role} در سازمان {OrgId} ایجاد شد", dto.PersonId, dto.Role, dto.OrganizationId);
 

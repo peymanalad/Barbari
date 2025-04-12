@@ -26,14 +26,14 @@ public class SubOrganizationService : ISubOrganizationService
         var organization = await _context.Organizations.FindAsync(dto.OrganizationId)
             ?? throw new Exception("سازمان یافت نشد");
 
-        var address = await _context.Addresses.FindAsync(dto.OriginAddressId)
+        var address = await _context.Addresses.FindAsync(dto.OriginAddress)
             ?? throw new Exception("آدرس مبدأ نامعتبر است");
 
         var branch = new Entities.SubOrganization
         {
             Name = dto.Name,
             OrganizationId = dto.OrganizationId,
-            OriginAddressId = dto.OriginAddressId
+            OriginAddress = dto.OriginAddress
         };
 
         _context.SubOrganizations.Add(branch);
@@ -79,12 +79,11 @@ public class SubOrganizationService : ISubOrganizationService
         if (!string.IsNullOrWhiteSpace(dto.Name))
             branch.Name = dto.Name;
 
-        if (dto.OriginAddressId.HasValue)
+        if (!string.IsNullOrWhiteSpace(dto.OriginAddress))
         {
-            var address = await _context.Addresses.FindAsync(dto.OriginAddressId.Value)
-                ?? throw new Exception("آدرس جدید یافت نشد");
-            branch.OriginAddressId = dto.OriginAddressId.Value;
+            branch.OriginAddress = dto.OriginAddress;
         }
+
 
         await _context.SaveChangesAsync();
         return await MapToDtoAsync(branch);
@@ -179,17 +178,13 @@ public class SubOrganizationService : ISubOrganizationService
             .Select(o => o.Name)
             .FirstOrDefaultAsync();
 
-        var address = await _context.Addresses
-            .Where(a => a.Id == entity.OriginAddressId)
-            .FirstOrDefaultAsync();
-
         return new SubOrganizationDto
         {
             Id = entity.Id,
             Name = entity.Name,
             OrganizationId = entity.OrganizationId,
             OrganizationName = orgName,
-            AddressSummary = address?.GetBrief() ?? "-"
+            AddressSummary = entity.OriginAddress ?? "-"
         };
     }
 
@@ -201,7 +196,7 @@ public class SubOrganizationService : ISubOrganizationService
             Name = entity.Name,
             OrganizationId = entity.OrganizationId,
             OrganizationName = entity.Organization?.Name ?? "-",
-            AddressSummary = entity.OriginAddress?.GetBrief() ?? "-"
+            AddressSummary = entity.OriginAddress ?? "-"
         };
     }
 }

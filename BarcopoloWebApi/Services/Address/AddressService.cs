@@ -37,7 +37,7 @@ public class AddressService : IAddressService
         _context.Addresses.Add(address);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Address created with Id {Id} for PersonId {PersonId}", address.Id, dto.PersonId);
+        _logger.LogInformation("آدرس جدید با شناسه {Id} ایجاد شد", address.Id);
         return MapToDto(address);
     }
 
@@ -67,6 +67,7 @@ public class AddressService : IAddressService
         var address = await _context.Addresses.FindAsync(id)
             ?? throw new Exception("آدرس یافت نشد.");
 
+
         await EnsureCanAccessPersonAsync(address.PersonId, currentUserId, "update");
 
         address.City = dto.City ?? address.City;
@@ -80,7 +81,7 @@ public class AddressService : IAddressService
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Address with Id {Id} updated successfully", id);
+        _logger.LogInformation("آدرس با شناسه {Id} با موفقیت بروزرسانی شد", id);
         return MapToDto(address);
     }
 
@@ -89,15 +90,15 @@ public class AddressService : IAddressService
         var address = await _context.Addresses.FindAsync(id)
             ?? throw new Exception("آدرس یافت نشد.");
 
+
         await EnsureCanAccessPersonAsync(address.PersonId, currentUserId, "delete");
 
         _context.Addresses.Remove(address);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Address with Id {Id} deleted successfully", id);
+        _logger.LogInformation("آدرس با شناسه {Id} حذف شد", id);
         return true;
     }
-
 
     private async Task EnsureCanAccessPersonAsync(long personId, long currentUserId, string action)
     {
@@ -106,14 +107,14 @@ public class AddressService : IAddressService
 
         if (currentPerson.Id != personId && currentPerson.Role != Enums.SystemRole.superadmin)
         {
-            _logger.LogWarning("User {UserId} is not authorized to {Action} address for PersonId {TargetId}", currentUserId, action, personId);
+            _logger.LogWarning("کاربر {UserId} مجاز به {Action} آدرس مربوط به شخص {TargetId} نمی‌باشد", currentUserId, action, personId);
             throw new UnauthorizedAccessException("دسترسی غیرمجاز");
         }
 
         var targetPerson = await _context.Persons.FindAsync(personId);
         if (targetPerson == null || !targetPerson.IsActive)
         {
-            _logger.LogWarning("Target person {TargetId} is invalid or inactive.", personId);
+            _logger.LogWarning("شخص مورد نظر ({TargetId}) معتبر یا فعال نیست.", personId);
             throw new Exception("کاربر مورد نظر معتبر یا فعال نیست.");
         }
     }

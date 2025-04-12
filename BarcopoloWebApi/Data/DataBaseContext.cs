@@ -217,12 +217,6 @@ namespace BarcopoloWebApi.Data
                 .HasForeignKey(s => s.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<SubOrganization>()
-                .HasOne(s => s.OriginAddress)
-                .WithMany()
-                .HasForeignKey(s => s.OriginAddressId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.OriginAddress)
                 .WithMany()
@@ -275,6 +269,13 @@ namespace BarcopoloWebApi.Data
             modelBuilder.Entity<Wallet>()
                 .Property(w => w.Balance)
                 .HasPrecision(18, 2);
+
+
+            modelBuilder.Entity<Address>()
+                .HasOne(a => a.Person)
+                .WithMany()
+                .HasForeignKey(a => a.PersonId)
+                .OnDelete(DeleteBehavior.Restrict);
 
 
 

@@ -24,29 +24,28 @@ namespace BarcopoloWebApi.Services.Organization
 
         public async Task<OrganizationDto> CreateAsync(CreateOrganizationDto dto, long currentUserId)
         {
-            await EnsureIsSuperAdmin(currentUserId);
-
-            var originAddress = await _context.Addresses.FindAsync(dto.OriginAddressId);
-            if (originAddress == null)
-                throw new Exception("آدرس مبدأ یافت نشد.");
+            await EnsureIsAdminOrSuperAdminAsync(currentUserId);
 
             var organization = new Entities.Organization
             {
                 Name = dto.Name,
-                OriginAddressId = dto.OriginAddressId
+                OriginAddress = dto.OriginAddress
             };
 
             _context.Organizations.Add(organization);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("سازمان جدید با شناسه {OrgId} توسط کاربر {UserId} ایجاد شد", organization.Id, currentUserId);
+            _logger.LogInformation("سازمان با شناسه {OrgId} توسط کاربر {UserId} ایجاد شد.", organization.Id, currentUserId);
+
             return await MapToDtoAsync(organization.Id);
         }
+
+
+
 
         public async Task<OrganizationDto> GetByIdAsync(long id, long currentUserId)
         {
             var org = await _context.Organizations
-                .Include(o => o.OriginAddress)
                 .Include(o => o.AllowedCargoTypes)
                 .Include(o => o.Branches)
                 .Include(o => o.Memberships)
@@ -66,7 +65,6 @@ namespace BarcopoloWebApi.Services.Organization
             await EnsureIsSuperAdmin(currentUserId);
 
             var organizations = await _context.Organizations
-                .Include(o => o.OriginAddress)
                 .Include(o => o.AllowedCargoTypes)
                 .Include(o => o.Branches)
                 .ToListAsync();
@@ -84,25 +82,21 @@ namespace BarcopoloWebApi.Services.Organization
                 throw new Exception("سازمان یافت نشد.");
 
             if (!await IsSuperAdmin(currentUserId) && !await IsOrgAdmin(id, currentUserId))
-                throw new Exception("عدم دسترسی");
+                throw new UnauthorizedAccessException("شما مجاز به ویرایش این سازمان نیستید.");
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
                 org.Name = dto.Name;
 
-            if (dto.OriginAddressId.HasValue)
-            {
-                var originAddress = await _context.Addresses.FindAsync(dto.OriginAddressId.Value);
-                if (originAddress == null)
-                    throw new Exception("آدرس مبدأ جدید یافت نشد.");
-
-                org.OriginAddressId = dto.OriginAddressId.Value;
-            }
+            if (!string.IsNullOrWhiteSpace(dto.OriginAddress))
+                org.OriginAddress = dto.OriginAddress;
 
             await _context.SaveChangesAsync();
+
             _logger.LogInformation("سازمان {OrgId} توسط کاربر {UserId} بروزرسانی شد", id, currentUserId);
 
             return await MapToDtoAsync(id);
         }
+
 
         public async Task<bool> DeleteAsync(long id, long currentUserId)
         {
@@ -133,6 +127,21 @@ namespace BarcopoloWebApi.Services.Organization
                 throw new Exception("شما مجاز به انجام این عملیات نیستید.");
         }
 
+        private async Task EnsureIsAdminOrSuperAdminAsync(long currentUserId)
+        {
+            var person = await _context.Persons
+                             .AsNoTracking()
+                             .FirstOrDefaultAsync(p => p.Id == currentUserId)
+                         ?? throw new Exception("کاربر جاری یافت نشد.");
+
+            if (person.Role != Enums.SystemRole.admin && person.Role != Enums.SystemRole.superadmin)
+            {
+                _logger.LogWarning("دسترسی غیرمجاز: کاربر {UserId} با نقش {Role} تلاش کرد به عملیات ادمین دسترسی پیدا کند.", currentUserId, person.Role);
+                throw new UnauthorizedAccessException("فقط کاربران با نقش ادمین یا سوپرادمین مجاز به انجام این عملیات هستند.");
+            }
+        }
+
+
         private async Task<bool> IsSuperAdmin(long userId)
         {
             return await _context.Persons
@@ -148,7 +157,6 @@ namespace BarcopoloWebApi.Services.Organization
         private async Task<OrganizationDto> MapToDtoAsync(long organizationId)
         {
             var org = await _context.Organizations
-                .Include(o => o.OriginAddress)
                 .Include(o => o.AllowedCargoTypes)
                 .Include(o => o.Branches)
                 .FirstOrDefaultAsync(o => o.Id == organizationId);
@@ -162,7 +170,7 @@ namespace BarcopoloWebApi.Services.Organization
             {
                 Id = org.Id,
                 Name = org.Name,
-                AddressSummary = org.OriginAddress?.GetBrief() ?? "—",
+                AddressSummary = org.OriginAddress ?? "-",
                 BranchCount = org.Branches.Count,
                 AllowedCargoTypes = org.AllowedCargoTypes.Select(c => c.CargoType?.Name ?? "نامشخص").ToList()
             };

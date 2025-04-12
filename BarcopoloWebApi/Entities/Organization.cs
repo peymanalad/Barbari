@@ -11,12 +11,10 @@ namespace BarcopoloWebApi.Entities
         [Required, MaxLength(100)]
         public string Name { get; set; }
 
-        [Required]
-        public long OriginAddressId { get; set; }
+        [Required, MaxLength(1000)]
+        public string OriginAddress { get; set; }
+
         public long? OrganizationWalletId { get; set; }
-
-
-        public virtual Address OriginAddress { get; set; }
 
         public virtual ICollection<SubOrganization> Branches { get; set; } = new List<SubOrganization>();
 

@@ -11,7 +11,7 @@ namespace BarcopoloWebApi.DTOs.SubOrganization
         [Required(ErrorMessage = "شناسه سازمان مادر الزامی است.")]
         public long OrganizationId { get; set; }
 
-        [Required(ErrorMessage = "شناسه آدرس مبدأ شعبه الزامی است.")]
-        public long OriginAddressId { get; set; }
+        [Required(ErrorMessage = "آدرس شعبه الزامه است.")]
+        public string OriginAddress { get; set; }
     }
 }

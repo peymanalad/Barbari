@@ -7,6 +7,6 @@ namespace BarcopoloWebApi.DTOs.Organization
         [MaxLength(100)]
         public string? Name { get; set; }
 
-        public long? OriginAddressId { get; set; }
+        public string? OriginAddress { get; set; }
     }
 }

@@ -14,15 +14,14 @@ namespace BarcopoloWebApi.Entities
         [Required]
         public long OrganizationId { get; set; }
 
-        [Required]
-        public long OriginAddressId { get; set; }
+        [Required, MaxLength(1000)]
+        public string OriginAddress { get; set; }
+        
         public long? BranchWalletId { get; set; }
 
 
         [JsonIgnore]
         public virtual Organization Organization { get; set; }
-
-        public virtual Address OriginAddress { get; set; }
 
         [JsonIgnore]
         public virtual ICollection<OrganizationMembership> Memberships { get; set; } = new List<OrganizationMembership>();

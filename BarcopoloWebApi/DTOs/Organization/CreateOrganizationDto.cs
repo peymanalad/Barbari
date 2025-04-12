@@ -8,7 +8,7 @@ namespace BarcopoloWebApi.DTOs.Organization
         [MaxLength(100)]
         public string Name { get; set; }
 
-        [Required(ErrorMessage = "شناسه آدرس مبدأ الزامی است.")]
-        public long OriginAddressId { get; set; }
+        [Required(ErrorMessage = "آدرس سازمان الزامی است.")]
+        public string OriginAddress { get; set; }
     }
 }

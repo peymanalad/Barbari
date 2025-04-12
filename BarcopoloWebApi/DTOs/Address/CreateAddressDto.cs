@@ -1,39 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace BarcopoloWebApi.DTOs.Address
+﻿public class CreateAddressDto
 {
-    public class CreateAddressDto
-    {
-        [Required]
-        public long PersonId { get; set; }
+    public long PersonId { get; set; }
 
-        [Required]
-        [MaxLength(100)]
-        public string City { get; set; }
-
-        [Required]
-        [MaxLength(100)]
-        public string Province { get; set; }
-
-        [Required]
-        [MaxLength(100)]
-        public string Title { get; set; }
-
-        [Required]
-        [MaxLength(20)]
-        public string PostalCode { get; set; }
-
-        [MaxLength(10)]
-        public string Plate { get; set; }
-
-        [MaxLength(10)]
-        public string Unit { get; set; }
-
-        [Required]
-        [MaxLength(500)]
-        public string FullAddress { get; set; }
-
-        [MaxLength(250)]
-        public string? AdditionalInfo { get; set; }
-    }
+    public string City { get; set; }
+    public string Province { get; set; }
+    public string Title { get; set; }
+    public string PostalCode { get; set; }
+    public string Plate { get; set; }
+    public string Unit { get; set; }
+    public string FullAddress { get; set; }
+    public string? AdditionalInfo { get; set; }
 }
