@@ -18,8 +18,8 @@ public class OrganizationCargoTypeService : IOrganizationCargoTypeService
 
     public async Task<IEnumerable<OrganizationCargoTypeDto>> GetAllAsync(long organizationId, long currentUserId)
     {
-        if (!await IsOrgMember(organizationId, currentUserId))
-            throw new AppException("دسترسی غیرمجاز");
+        if (!await HasOrganizationAddPermissionAsync(organizationId, currentUserId))
+            throw new AppException("تنها مدیر سازمان یا مدیر سیستم می‌تواند نوع بار اضافه کند");
 
         return await _context.OrganizationCargoTypes
             .Where(x => x.OrganizationId == organizationId)
@@ -35,8 +35,8 @@ public class OrganizationCargoTypeService : IOrganizationCargoTypeService
 
     public async Task<OrganizationCargoTypeDto> AddAsync(long organizationId, CreateOrganizationCargoTypeDto dto, long currentUserId)
     {
-        if (!await IsOrgAdmin(organizationId, currentUserId))
-            throw new AppException("تنها مدیر سازمان می‌تواند نوع بار اضافه کند");
+        if (!await HasOrganizationAddPermissionAsync(organizationId, currentUserId))
+            throw new AppException("تنها مدیر سازمان یا مدیر سیستم می‌تواند نوع بار اضافه کند");
 
         var exists = await _context.OrganizationCargoTypes.AnyAsync(x =>
             x.OrganizationId == organizationId && x.CargoTypeId == dto.CargoTypeId);
@@ -74,9 +74,9 @@ public class OrganizationCargoTypeService : IOrganizationCargoTypeService
 
         if (entity == null)
             return false;
-
-        if (!await IsOrgAdmin(entity.OrganizationId, currentUserId))
-            throw new AppException("فقط مدیر سازمان می‌تواند حذف کند");
+        
+        if (!await HasOrganizationAddPermissionAsync(entity.OrganizationId, currentUserId))
+            throw new AppException("تنها مدیر سازمان یا مدیر سیستم می‌تواند نوع بار اضافه کند");
 
         _context.OrganizationCargoTypes.Remove(entity);
         await _context.SaveChangesAsync();
@@ -100,4 +100,22 @@ public class OrganizationCargoTypeService : IOrganizationCargoTypeService
         return await _context.OrganizationMemberships.AnyAsync(m =>
             m.OrganizationId == orgId && m.PersonId == userId);
     }
+
+    private async Task<bool> HasOrganizationAddPermissionAsync(long organizationId, long userId)
+    {
+        var isOrgAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+            m.OrganizationId == organizationId && m.PersonId == userId && m.Role == SystemRole.orgadmin);
+
+        if (isOrgAdmin)
+            return true;
+
+        var person = await _context.Persons
+            .Where(p => p.Id == userId)
+            .Select(p => p.Role)
+            .FirstOrDefaultAsync();
+
+        return person is SystemRole.admin or SystemRole.superadmin;
+    }
+
+
 }

@@ -26,9 +26,6 @@ public class SubOrganizationService : ISubOrganizationService
         var organization = await _context.Organizations.FindAsync(dto.OrganizationId)
             ?? throw new Exception("سازمان یافت نشد");
 
-        var address = await _context.Addresses.FindAsync(dto.OriginAddress)
-            ?? throw new Exception("آدرس مبدأ نامعتبر است");
-
         var branch = new Entities.SubOrganization
         {
             Name = dto.Name,
@@ -49,7 +46,6 @@ public class SubOrganizationService : ISubOrganizationService
 
         var branch = await _context.SubOrganizations
             .Include(b => b.Organization)
-            .Include(b => b.OriginAddress)
             .FirstOrDefaultAsync(b => b.Id == id)
             ?? throw new Exception("شعبه یافت نشد");
 
@@ -63,7 +59,6 @@ public class SubOrganizationService : ISubOrganizationService
         var branches = await _context.SubOrganizations
             .Where(b => b.OrganizationId == organizationId)
             .Include(b => b.Organization)
-            .Include(b => b.OriginAddress)
             .ToListAsync();
 
         return branches.Select(MapToDto).ToList();
