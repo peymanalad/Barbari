@@ -52,6 +52,7 @@ namespace BarcopoloWebApi.Services.Auth
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 PhoneNumber = dto.PhoneNumber,
+                NationalCode = dto.NationalCode,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             };

@@ -12,6 +12,9 @@ namespace BarcopoloWebApi.DTOs.Auth
         [MinLength(6, ErrorMessage = "رمز عبور باید حداقل 6 کاراکتر باشد.")]
         public string Password { get; set; }
 
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "کد ملی باید 10 رقمی باشد.")]
+        public string? NationalCode { get; set; }
+
         [Required(ErrorMessage = "نام الزامی است.")]
         public string FirstName { get; set; }
 
