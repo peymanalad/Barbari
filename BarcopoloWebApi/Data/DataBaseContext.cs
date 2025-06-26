@@ -35,8 +35,7 @@ namespace BarcopoloWebApi.Data
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<WalletTransaction> WalletTransactions { get; set; }
         public DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
-
-
+        public DbSet<FrequentAddress> FrequentAddresses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -60,8 +59,9 @@ namespace BarcopoloWebApi.Data
 
             modelBuilder.Entity<OrganizationMembership>()
                 .HasOne(m => m.Person)
-                .WithMany()
-                .HasForeignKey(m => m.PersonId);
+                .WithMany(p => p.Memberships)
+                .HasForeignKey(m => m.PersonId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Organization>()
                 .HasMany(o => o.Branches)
@@ -162,12 +162,6 @@ namespace BarcopoloWebApi.Data
                 .HasForeignKey<Driver>(d => d.PersonId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Vehicle>()
-                .HasOne(v => v.Driver)
-                .WithMany()
-                .HasForeignKey(v => v.DriverId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<Bargir>()
                 .HasOne(b => b.Vehicle)
                 .WithOne(v => v.Bargir)
@@ -222,11 +216,11 @@ namespace BarcopoloWebApi.Data
                 .WithMany()
                 .HasForeignKey(o => o.OriginAddressId)
                 .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Order>()
-                .HasOne(o => o.DestinationAddress)
-                .WithMany()
-                .HasForeignKey(o => o.DestinationAddressId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Address>()
+                .HasOne(a => a.Person)
+                .WithMany(p => p.Addresses)
+                .HasForeignKey(a => a.PersonId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Cargo>()
                 .HasOne(c => c.Owner)
@@ -270,13 +264,35 @@ namespace BarcopoloWebApi.Data
                 .Property(w => w.Balance)
                 .HasPrecision(18, 2);
 
-
-            modelBuilder.Entity<Address>()
-                .HasOne(a => a.Person)
-                .WithMany()
-                .HasForeignKey(a => a.PersonId)
+            modelBuilder.Entity<Cargo>()
+                .HasOne(c => c.Order)
+                .WithMany(o => o.Cargos)
+                .HasForeignKey(c => c.OrderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<FrequentAddress>(entity =>
+            {
+                entity.HasOne(f => f.Person)
+                    .WithMany()
+                    .HasForeignKey(f => f.PersonId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(f => f.Organization)
+                    .WithMany()
+                    .HasForeignKey(f => f.OrganizationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(f => f.Branch)
+                    .WithMany()
+                    .HasForeignKey(f => f.BranchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(f => new { f.FullAddress, f.PersonId, f.OrganizationId, f.BranchId })
+                    .IsUnique(false); 
+
+                entity.Property(f => f.Title).HasMaxLength(100).IsRequired();
+                entity.Property(f => f.FullAddress).HasMaxLength(1000).IsRequired();
+            });
 
 
         }

@@ -22,34 +22,33 @@ namespace BarcopoloWebApi.Entities
         [Required, MaxLength(1000)]
         public string Contents { get; set; }
 
-        [Range(0, double.MaxValue)]
-        public decimal Value { get; set; }
 
         [Range(0.01, double.MaxValue)]
-        public decimal Weight { get; set; }
+        public decimal? Weight { get; set; }
 
         [Range(0, double.MaxValue)]
-        public decimal Length { get; set; }
+        public decimal? Length { get; set; }
 
         [Range(0, double.MaxValue)]
-        public decimal Width { get; set; }
+        public decimal? Width { get; set; }
 
         [Range(0, double.MaxValue)]
-        public decimal Height { get; set; }
+        public decimal? Height { get; set; }
 
         [MaxLength(50)]
         public string PackagingType { get; set; }
 
         [Range(0, 10000)]
-        public int PackageCount { get; set; }
+        public int? PackageCount { get; set; }
 
         [MaxLength(1000)]
         public string Description { get; set; }
 
-        [Required]
-        public long OrderId { get; set; }
+        //[Required]
+        //public long OrderId { get; set; }
+        public long? OrderId { get; set; }
 
-        public virtual Order Order { get; set; }
+        public virtual Order? Order { get; set; }
         public virtual Person Owner { get; set; }
         public virtual CargoType CargoType { get; set; }
         public virtual ICollection<CargoImage> Images { get; set; } = new List<CargoImage>();
@@ -63,6 +62,13 @@ namespace BarcopoloWebApi.Entities
             PackageCount = packageCount;
         }
 
-        public decimal CalculateVolume() => Length * Width * Height;
+        public decimal? CalculateVolume()
+        {
+            if (Length == null || Width == null || Height == null)
+                return null;
+
+            return Length.Value * Width.Value * Height.Value;
+        }
+
     }
 }

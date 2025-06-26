@@ -104,5 +104,20 @@ namespace BarcopoloWebApi.Controllers
                 return HandleError(ex, "Error deleting person", new { id });
             }
         }
+        [HttpPut("{id}/activate")]
+        public async Task<IActionResult> Activate(long id)
+        {
+            _logger.LogInformation("Activating person {PersonId} by user {UserId}", id, CurrentUserId);
+            try
+            {
+                var result = await _personService.ActivateAsync(id, CurrentUserId);
+                return result ? Ok(new { success = true }) : NotFound(new { error = "شخص مورد نظر برای فعال‌سازی یافت نشد" });
+            }
+            catch (Exception ex)
+            {
+                return HandleError(ex, "Error activating person", new { id });
+            }
+        }
+
     }
 }

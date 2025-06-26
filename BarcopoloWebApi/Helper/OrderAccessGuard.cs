@@ -7,7 +7,7 @@ public static class OrderAccessGuard
 {
     public static async Task EnsureUserCanAccessOrderAsync(Order order, Person user, DataBaseContext context, long? resourceOwnerId = null)
     {
-        var isAdmin = user.IsAdminOrSuperAdmin();
+        var isAdmin = user.IsAdminOrSuperAdminOrMonitor();
         var isOwner = resourceOwnerId.HasValue && resourceOwnerId.Value == user.Id;
 
         if (isAdmin || isOwner)

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarcopoloWebApi.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20250412120240_ChangeAddress")]
-    partial class ChangeAddress
+    [Migration("20250419203006_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace BarcopoloWebApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Address", b =>
+            modelBuilder.Entity("BarcopoloWebApi.Entities.Address", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -47,13 +47,7 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<long?>("OrganizationId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("PersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("PersonId1")
+                    b.Property<long>("PersonId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Plate")
@@ -71,9 +65,6 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<long?>("SubOrganizationId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -86,13 +77,7 @@ namespace BarcopoloWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrganizationId");
-
                     b.HasIndex("PersonId");
-
-                    b.HasIndex("PersonId1");
-
-                    b.HasIndex("SubOrganizationId");
 
                     b.ToTable("Addresses");
                 });
@@ -149,22 +134,22 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<decimal>("Height")
+                    b.Property<decimal?>("Height")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("Length")
+                    b.Property<decimal?>("Length")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("NeedsPackaging")
                         .HasColumnType("bit");
 
-                    b.Property<long>("OrderId")
+                    b.Property<long?>("OrderId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("OwnerId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("PackageCount")
+                    b.Property<int?>("PackageCount")
                         .HasColumnType("int");
 
                     b.Property<string>("PackagingType")
@@ -177,13 +162,10 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("Value")
+                    b.Property<decimal?>("Weight")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("Weight")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("Width")
+                    b.Property<decimal?>("Width")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
@@ -338,27 +320,34 @@ namespace BarcopoloWebApi.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("DeclaredValue")
+                        .HasColumnType("decimal(18,0)");
+
                     b.Property<long?>("DelivererId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("DeliveryTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<long>("DestinationAddressId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("DestinationAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Details")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
                     b.Property<decimal>("Fare")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18,0)");
 
                     b.Property<long?>("FinalReceiverId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("Insurance")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<bool>("IsInsuranceRequested")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LoadingTime")
                         .HasColumnType("datetime2");
@@ -406,7 +395,7 @@ namespace BarcopoloWebApi.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("Vat")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18,0)");
 
                     b.Property<long?>("WarehouseId")
                         .HasColumnType("bigint");
@@ -418,8 +407,6 @@ namespace BarcopoloWebApi.Migrations
                     b.HasIndex("CollectorId");
 
                     b.HasIndex("DelivererId");
-
-                    b.HasIndex("DestinationAddressId");
 
                     b.HasIndex("FinalReceiverId");
 
@@ -499,19 +486,16 @@ namespace BarcopoloWebApi.Migrations
                     b.Property<long?>("OrganizationWalletId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("OriginAddressId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("OriginAddressId1")
-                        .HasColumnType("bigint");
+                    b.Property<string>("OriginAddress")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationWalletId")
                         .IsUnique()
                         .HasFilter("[OrganizationWalletId] IS NOT NULL");
-
-                    b.HasIndex("OriginAddressId1");
 
                     b.ToTable("Organizations");
                 });
@@ -559,9 +543,6 @@ namespace BarcopoloWebApi.Migrations
                     b.Property<long>("PersonId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("PersonId1")
-                        .HasColumnType("bigint");
-
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
@@ -572,8 +553,6 @@ namespace BarcopoloWebApi.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("PersonId");
-
-                    b.HasIndex("PersonId1");
 
                     b.ToTable("OrganizationMemberships");
                 });
@@ -716,8 +695,10 @@ namespace BarcopoloWebApi.Migrations
                     b.Property<long>("OrganizationId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("OriginAddressId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("OriginAddress")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("Id");
 
@@ -726,8 +707,6 @@ namespace BarcopoloWebApi.Migrations
                         .HasFilter("[BranchWalletId] IS NOT NULL");
 
                     b.HasIndex("OrganizationId");
-
-                    b.HasIndex("OriginAddressId");
 
                     b.ToTable("SubOrganizations");
                 });
@@ -795,9 +774,6 @@ namespace BarcopoloWebApi.Migrations
                     b.Property<long?>("DriverId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("DriverId1")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Engine")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -833,8 +809,6 @@ namespace BarcopoloWebApi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DriverId");
-
-                    b.HasIndex("DriverId1");
 
                     b.ToTable("Vehicles");
                 });
@@ -1028,6 +1002,80 @@ namespace BarcopoloWebApi.Migrations
                     b.ToTable("WithdrawalRequests");
                 });
 
+            modelBuilder.Entity("FrequentAddress", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AddressType")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("BranchId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FullAddress")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("LastUsed")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("OrganizationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Plate")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("UsageCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("FullAddress", "PersonId", "OrganizationId", "BranchId");
+
+                    b.ToTable("FrequentAddresses");
+                });
+
             modelBuilder.Entity("Wallet", b =>
                 {
                     b.Property<long>("Id")
@@ -1054,32 +1102,15 @@ namespace BarcopoloWebApi.Migrations
                     b.ToTable("Wallets");
                 });
 
-            modelBuilder.Entity("Address", b =>
+            modelBuilder.Entity("BarcopoloWebApi.Entities.Address", b =>
                 {
-                    b.HasOne("BarcopoloWebApi.Entities.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("BarcopoloWebApi.Entities.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("BarcopoloWebApi.Entities.Person", null)
                         .WithMany("Addresses")
-                        .HasForeignKey("PersonId1");
-
-                    b.HasOne("BarcopoloWebApi.Entities.SubOrganization", "SubOrganization")
-                        .WithMany()
-                        .HasForeignKey("SubOrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Organization");
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Person");
-
-                    b.Navigation("SubOrganization");
                 });
 
             modelBuilder.Entity("BarcopoloWebApi.Entities.Bargir", b =>
@@ -1103,8 +1134,7 @@ namespace BarcopoloWebApi.Migrations
                     b.HasOne("BarcopoloWebApi.Entities.Order", "Order")
                         .WithMany("Cargos")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BarcopoloWebApi.Entities.Person", "Owner")
                         .WithMany("OwnedCargos")
@@ -1168,12 +1198,6 @@ namespace BarcopoloWebApi.Migrations
                         .HasForeignKey("DelivererId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Address", "DestinationAddress")
-                        .WithMany()
-                        .HasForeignKey("DestinationAddressId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("BarcopoloWebApi.Entities.Person", "FinalReceiver")
                         .WithMany()
                         .HasForeignKey("FinalReceiverId")
@@ -1183,7 +1207,7 @@ namespace BarcopoloWebApi.Migrations
                         .WithMany("Orders")
                         .HasForeignKey("OrganizationId");
 
-                    b.HasOne("Address", "OriginAddress")
+                    b.HasOne("BarcopoloWebApi.Entities.Address", "OriginAddress")
                         .WithMany()
                         .HasForeignKey("OriginAddressId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1205,8 +1229,6 @@ namespace BarcopoloWebApi.Migrations
                     b.Navigation("Collector");
 
                     b.Navigation("Deliverer");
-
-                    b.Navigation("DestinationAddress");
 
                     b.Navigation("FinalReceiver");
 
@@ -1262,15 +1284,7 @@ namespace BarcopoloWebApi.Migrations
                         .HasForeignKey("BarcopoloWebApi.Entities.Organization", "OrganizationWalletId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Address", "OriginAddress")
-                        .WithMany()
-                        .HasForeignKey("OriginAddressId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("OrganizationWallet");
-
-                    b.Navigation("OriginAddress");
                 });
 
             modelBuilder.Entity("BarcopoloWebApi.Entities.OrganizationCargoType", b =>
@@ -1306,14 +1320,10 @@ namespace BarcopoloWebApi.Migrations
                         .IsRequired();
 
                     b.HasOne("BarcopoloWebApi.Entities.Person", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BarcopoloWebApi.Entities.Person", null)
                         .WithMany("Memberships")
-                        .HasForeignKey("PersonId1");
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Branch");
 
@@ -1356,17 +1366,9 @@ namespace BarcopoloWebApi.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Address", "OriginAddress")
-                        .WithMany()
-                        .HasForeignKey("OriginAddressId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("BranchWallet");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("OriginAddress");
                 });
 
             modelBuilder.Entity("BarcopoloWebApi.Entities.UserToken", b =>
@@ -1383,13 +1385,9 @@ namespace BarcopoloWebApi.Migrations
             modelBuilder.Entity("BarcopoloWebApi.Entities.Vehicle", b =>
                 {
                     b.HasOne("BarcopoloWebApi.Entities.Driver", "Driver")
-                        .WithMany()
+                        .WithMany("Vehicles")
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("BarcopoloWebApi.Entities.Driver", null)
-                        .WithMany("Vehicles")
-                        .HasForeignKey("DriverId1");
 
                     b.Navigation("Driver");
                 });
@@ -1413,7 +1411,7 @@ namespace BarcopoloWebApi.Migrations
 
             modelBuilder.Entity("BarcopoloWebApi.Entities.Warehouse", b =>
                 {
-                    b.HasOne("Address", "Address")
+                    b.HasOne("BarcopoloWebApi.Entities.Address", "Address")
                         .WithMany()
                         .HasForeignKey("AddressId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1465,6 +1463,30 @@ namespace BarcopoloWebApi.Migrations
                     b.Navigation("ReviewedByAdmin");
 
                     b.Navigation("SourceWallet");
+                });
+
+            modelBuilder.Entity("FrequentAddress", b =>
+                {
+                    b.HasOne("BarcopoloWebApi.Entities.SubOrganization", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("BarcopoloWebApi.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("BarcopoloWebApi.Entities.Person", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Person");
                 });
 
             modelBuilder.Entity("BarcopoloWebApi.Entities.Cargo", b =>

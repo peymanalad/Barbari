@@ -2,7 +2,7 @@
 {
     public class UpdateCargoDto
     {
-        public string? CargoType { get; set; }
+        public long? CargoTypeId { get; set; }
         public bool? NeedsPackaging { get; set; }
 
         public string? Title { get; set; }

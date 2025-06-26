@@ -14,5 +14,6 @@ namespace BarcopoloWebApi.DTOs.Person
         public string? NationalCode { get; set; }
 
         public bool? IsActive { get; set; }
+        public string? Role { get; set; }
     }
 }

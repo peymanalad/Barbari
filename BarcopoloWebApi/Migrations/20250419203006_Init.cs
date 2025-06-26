@@ -25,6 +25,59 @@ namespace BarcopoloWebApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Sms",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Used = table.Column<bool>(type: "bit", nullable: false),
+                    RequestCount = table.Column<int>(type: "int", nullable: false),
+                    InsertDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Sms", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Wallets",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OwnerType = table.Column<int>(type: "int", nullable: false),
+                    OwnerId = table.Column<long>(type: "bigint", nullable: false),
+                    Balance = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Wallets", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Organizations",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    OriginAddress = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    OrganizationWalletId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Organizations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Organizations_Wallets_OrganizationWalletId",
+                        column: x => x.OrganizationWalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Persons",
                 columns: table => new
                 {
@@ -43,23 +96,66 @@ namespace BarcopoloWebApi.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Persons", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Persons_Wallets_PersonalWalletId",
+                        column: x => x.PersonalWalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Sms",
+                name: "OrganizationCargoTypes",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Used = table.Column<bool>(type: "bit", nullable: false),
-                    RequestCount = table.Column<int>(type: "int", nullable: false),
-                    InsertDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    OrganizationId = table.Column<long>(type: "bigint", nullable: false),
+                    CargoTypeId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Sms", x => x.Id);
+                    table.PrimaryKey("PK_OrganizationCargoTypes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrganizationCargoTypes_CargoTypes_CargoTypeId",
+                        column: x => x.CargoTypeId,
+                        principalTable: "CargoTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrganizationCargoTypes_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SubOrganizations",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    OrganizationId = table.Column<long>(type: "bigint", nullable: false),
+                    OriginAddress = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    BranchWalletId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubOrganizations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SubOrganizations_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SubOrganizations_Wallets_BranchWalletId",
+                        column: x => x.BranchWalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -141,24 +237,49 @@ namespace BarcopoloWebApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WalletTransactions",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    WalletId = table.Column<long>(type: "bigint", nullable: false),
+                    TransactionType = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    BalanceBefore = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    BalanceAfter = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PerformedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PerformedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WalletTransactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WalletTransactions_Persons_PerformedByPersonId",
+                        column: x => x.PerformedByPersonId,
+                        principalTable: "Persons",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_WalletTransactions_Wallets_WalletId",
+                        column: x => x.WalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WithdrawalRequests",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    RequesterPersonId = table.Column<long>(type: "bigint", nullable: false),
-                    SourceWalletOwnerType = table.Column<int>(type: "int", nullable: false),
-                    SourceWalletOwnerId = table.Column<long>(type: "bigint", nullable: false),
                     SourceWalletId = table.Column<long>(type: "bigint", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    RequestDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    DestinationDetails = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    RequesterNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RequesterPersonId = table.Column<long>(type: "bigint", nullable: false),
                     ReviewedByAdminId = table.Column<long>(type: "bigint", nullable: true),
-                    ReviewedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    AdminNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ProcessedWalletTransactionId = table.Column<long>(type: "bigint", nullable: true)
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -173,28 +294,92 @@ namespace BarcopoloWebApi.Migrations
                         name: "FK_WithdrawalRequests_Persons_ReviewedByAdminId",
                         column: x => x.ReviewedByAdminId,
                         principalTable: "Persons",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WithdrawalRequests_Wallets_SourceWalletId",
+                        column: x => x.SourceWalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Organizations",
+                name: "FrequentAddresses",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    OriginAddressId = table.Column<long>(type: "bigint", nullable: false),
-                    OrganizationWalletId = table.Column<long>(type: "bigint", nullable: true)
+                    PersonId = table.Column<long>(type: "bigint", nullable: true),
+                    OrganizationId = table.Column<long>(type: "bigint", nullable: true),
+                    BranchId = table.Column<long>(type: "bigint", nullable: true),
+                    AddressType = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    FullAddress = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Province = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PostalCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Plate = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Unit = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    UsageCount = table.Column<int>(type: "int", nullable: false),
+                    LastUsed = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Organizations", x => x.Id);
+                    table.PrimaryKey("PK_FrequentAddresses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Organizations_Addresses_OriginAddressId",
-                        column: x => x.OriginAddressId,
-                        principalTable: "Addresses",
+                        name: "FK_FrequentAddresses_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FrequentAddresses_Persons_PersonId",
+                        column: x => x.PersonId,
+                        principalTable: "Persons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FrequentAddresses_SubOrganizations_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "SubOrganizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrganizationMemberships",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    OrganizationId = table.Column<long>(type: "bigint", nullable: false),
+                    Role = table.Column<int>(type: "int", nullable: false),
+                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    BranchId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrganizationMemberships", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrganizationMemberships_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrganizationMemberships_Persons_PersonId",
+                        column: x => x.PersonId,
+                        principalTable: "Persons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrganizationMemberships_SubOrganizations_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "SubOrganizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -256,8 +441,7 @@ namespace BarcopoloWebApi.Migrations
                     HasViolations = table.Column<bool>(type: "bit", nullable: false),
                     IsVan = table.Column<bool>(type: "bit", nullable: false),
                     VanCommission = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    IsBroken = table.Column<bool>(type: "bit", nullable: false),
-                    DriverId1 = table.Column<long>(type: "bigint", nullable: true)
+                    IsBroken = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -268,63 +452,87 @@ namespace BarcopoloWebApi.Migrations
                         principalTable: "Drivers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Vehicles_Drivers_DriverId1",
-                        column: x => x.DriverId1,
-                        principalTable: "Drivers",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "OrganizationCargoTypes",
+                name: "Orders",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    OrganizationId = table.Column<long>(type: "bigint", nullable: false),
-                    CargoTypeId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrganizationCargoTypes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OrganizationCargoTypes_CargoTypes_CargoTypeId",
-                        column: x => x.CargoTypeId,
-                        principalTable: "CargoTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OrganizationCargoTypes_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SubOrganizations",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    OrganizationId = table.Column<long>(type: "bigint", nullable: false),
+                    OwnerId = table.Column<long>(type: "bigint", nullable: false),
+                    OrganizationId = table.Column<long>(type: "bigint", nullable: true),
+                    BranchId = table.Column<long>(type: "bigint", nullable: true),
+                    CollectorId = table.Column<long>(type: "bigint", nullable: true),
+                    DelivererId = table.Column<long>(type: "bigint", nullable: true),
+                    FinalReceiverId = table.Column<long>(type: "bigint", nullable: true),
                     OriginAddressId = table.Column<long>(type: "bigint", nullable: false),
-                    BranchWalletId = table.Column<long>(type: "bigint", nullable: true)
+                    DestinationAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    WarehouseId = table.Column<long>(type: "bigint", nullable: true),
+                    LoadingTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeliveryTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Details = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    TrackingNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Fare = table.Column<decimal>(type: "decimal(18,0)", nullable: false),
+                    Insurance = table.Column<decimal>(type: "decimal(18,0)", nullable: false),
+                    Vat = table.Column<decimal>(type: "decimal(18,0)", nullable: false),
+                    DeclaredValue = table.Column<decimal>(type: "decimal(18,0)", nullable: true),
+                    IsInsuranceRequested = table.Column<bool>(type: "bit", nullable: false),
+                    SenderName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    SenderPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ReceiverPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    OrderDescription = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SubOrganizations", x => x.Id);
+                    table.PrimaryKey("PK_Orders", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SubOrganizations_Addresses_OriginAddressId",
+                        name: "FK_Orders_Addresses_OriginAddressId",
                         column: x => x.OriginAddressId,
                         principalTable: "Addresses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SubOrganizations_Organizations_OrganizationId",
+                        name: "FK_Orders_Organizations_OrganizationId",
                         column: x => x.OrganizationId,
                         principalTable: "Organizations",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Orders_Persons_CollectorId",
+                        column: x => x.CollectorId,
+                        principalTable: "Persons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_Persons_DelivererId",
+                        column: x => x.DelivererId,
+                        principalTable: "Persons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_Persons_FinalReceiverId",
+                        column: x => x.FinalReceiverId,
+                        principalTable: "Persons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_Persons_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "Persons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Orders_SubOrganizations_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "SubOrganizations",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Orders_Warehouses_WarehouseId",
+                        column: x => x.WarehouseId,
+                        principalTable: "Warehouses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -376,134 +584,6 @@ namespace BarcopoloWebApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Orders",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    OwnerId = table.Column<long>(type: "bigint", nullable: false),
-                    OrganizationId = table.Column<long>(type: "bigint", nullable: true),
-                    BranchId = table.Column<long>(type: "bigint", nullable: true),
-                    CollectorId = table.Column<long>(type: "bigint", nullable: true),
-                    DelivererId = table.Column<long>(type: "bigint", nullable: true),
-                    FinalReceiverId = table.Column<long>(type: "bigint", nullable: true),
-                    OriginAddressId = table.Column<long>(type: "bigint", nullable: false),
-                    DestinationAddressId = table.Column<long>(type: "bigint", nullable: false),
-                    WarehouseId = table.Column<long>(type: "bigint", nullable: true),
-                    LoadingTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeliveryTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Details = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    TrackingNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Fare = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Insurance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Vat = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    SenderName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    SenderPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ReceiverPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    OrderDescription = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Orders", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Orders_Addresses_DestinationAddressId",
-                        column: x => x.DestinationAddressId,
-                        principalTable: "Addresses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Addresses_OriginAddressId",
-                        column: x => x.OriginAddressId,
-                        principalTable: "Addresses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Orders_Persons_CollectorId",
-                        column: x => x.CollectorId,
-                        principalTable: "Persons",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Persons_DelivererId",
-                        column: x => x.DelivererId,
-                        principalTable: "Persons",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Persons_FinalReceiverId",
-                        column: x => x.FinalReceiverId,
-                        principalTable: "Persons",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Persons_OwnerId",
-                        column: x => x.OwnerId,
-                        principalTable: "Persons",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Orders_SubOrganizations_BranchId",
-                        column: x => x.BranchId,
-                        principalTable: "SubOrganizations",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Orders_Warehouses_WarehouseId",
-                        column: x => x.WarehouseId,
-                        principalTable: "Warehouses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OrganizationMemberships",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false),
-                    OrganizationId = table.Column<long>(type: "bigint", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    BranchId = table.Column<long>(type: "bigint", nullable: true),
-                    PersonId1 = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrganizationMemberships", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OrganizationMemberships_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrganizationMemberships_Persons_PersonId",
-                        column: x => x.PersonId,
-                        principalTable: "Persons",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OrganizationMemberships_Persons_PersonId1",
-                        column: x => x.PersonId1,
-                        principalTable: "Persons",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_OrganizationMemberships_SubOrganizations_BranchId",
-                        column: x => x.BranchId,
-                        principalTable: "SubOrganizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Cargos",
                 columns: table => new
                 {
@@ -514,15 +594,14 @@ namespace BarcopoloWebApi.Migrations
                     NeedsPackaging = table.Column<bool>(type: "bit", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Contents = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    Value = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Weight = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Length = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Width = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Height = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Weight = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Length = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Width = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Height = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     PackagingType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    PackageCount = table.Column<int>(type: "int", nullable: false),
+                    PackageCount = table.Column<int>(type: "int", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    OrderId = table.Column<long>(type: "bigint", nullable: false)
+                    OrderId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -538,7 +617,7 @@ namespace BarcopoloWebApi.Migrations
                         column: x => x.OrderId,
                         principalTable: "Orders",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Cargos_Persons_OwnerId",
                         column: x => x.OwnerId,
@@ -709,6 +788,26 @@ namespace BarcopoloWebApi.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_FrequentAddresses_BranchId",
+                table: "FrequentAddresses",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FrequentAddresses_FullAddress_PersonId_OrganizationId_BranchId",
+                table: "FrequentAddresses",
+                columns: new[] { "FullAddress", "PersonId", "OrganizationId", "BranchId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FrequentAddresses_OrganizationId",
+                table: "FrequentAddresses",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FrequentAddresses_PersonId",
+                table: "FrequentAddresses",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderEvents_ChangedByPersonId",
                 table: "OrderEvents",
                 column: "ChangedByPersonId");
@@ -732,11 +831,6 @@ namespace BarcopoloWebApi.Migrations
                 name: "IX_Orders_DelivererId",
                 table: "Orders",
                 column: "DelivererId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_DestinationAddressId",
-                table: "Orders",
-                column: "DestinationAddressId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_FinalReceiverId",
@@ -794,19 +888,23 @@ namespace BarcopoloWebApi.Migrations
                 column: "PersonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrganizationMemberships_PersonId1",
-                table: "OrganizationMemberships",
-                column: "PersonId1");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Organizations_OriginAddressId",
+                name: "IX_Organizations_OrganizationWalletId",
                 table: "Organizations",
-                column: "OriginAddressId");
+                column: "OrganizationWalletId",
+                unique: true,
+                filter: "[OrganizationWalletId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Payments_OrderId",
                 table: "Payments",
                 column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Persons_PersonalWalletId",
+                table: "Persons",
+                column: "PersonalWalletId",
+                unique: true,
+                filter: "[PersonalWalletId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Persons_PhoneNumber",
@@ -815,14 +913,16 @@ namespace BarcopoloWebApi.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_SubOrganizations_BranchWalletId",
+                table: "SubOrganizations",
+                column: "BranchWalletId",
+                unique: true,
+                filter: "[BranchWalletId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SubOrganizations_OrganizationId",
                 table: "SubOrganizations",
                 column: "OrganizationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubOrganizations_OriginAddressId",
-                table: "SubOrganizations",
-                column: "OriginAddressId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tokens_PersonId",
@@ -835,9 +935,20 @@ namespace BarcopoloWebApi.Migrations
                 column: "DriverId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Vehicles_DriverId1",
-                table: "Vehicles",
-                column: "DriverId1");
+                name: "IX_Wallets_OwnerType_OwnerId",
+                table: "Wallets",
+                columns: new[] { "OwnerType", "OwnerId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WalletTransactions_PerformedByPersonId",
+                table: "WalletTransactions",
+                column: "PerformedByPersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WalletTransactions_WalletId",
+                table: "WalletTransactions",
+                column: "WalletId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Warehouses_AddressId",
@@ -858,6 +969,11 @@ namespace BarcopoloWebApi.Migrations
                 name: "IX_WithdrawalRequests_ReviewedByAdminId",
                 table: "WithdrawalRequests",
                 column: "ReviewedByAdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WithdrawalRequests_SourceWalletId",
+                table: "WithdrawalRequests",
+                column: "SourceWalletId");
         }
 
         /// <inheritdoc />
@@ -871,6 +987,9 @@ namespace BarcopoloWebApi.Migrations
 
             migrationBuilder.DropTable(
                 name: "Feedbacks");
+
+            migrationBuilder.DropTable(
+                name: "FrequentAddresses");
 
             migrationBuilder.DropTable(
                 name: "OrderEvents");
@@ -892,6 +1011,9 @@ namespace BarcopoloWebApi.Migrations
 
             migrationBuilder.DropTable(
                 name: "Tokens");
+
+            migrationBuilder.DropTable(
+                name: "WalletTransactions");
 
             migrationBuilder.DropTable(
                 name: "WarehouseVehicles");
@@ -928,6 +1050,9 @@ namespace BarcopoloWebApi.Migrations
 
             migrationBuilder.DropTable(
                 name: "Persons");
+
+            migrationBuilder.DropTable(
+                name: "Wallets");
         }
     }
 }

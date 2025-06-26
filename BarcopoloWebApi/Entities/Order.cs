@@ -1,5 +1,6 @@
 ﻿using BarcopoloWebApi.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -21,7 +22,7 @@ namespace BarcopoloWebApi.Entities
         public long OriginAddressId { get; set; }
 
         [Required]
-        public long DestinationAddressId { get; set; }
+        public string DestinationAddress { get; set; }
 
         public long? WarehouseId { get; set; }
 
@@ -40,14 +41,24 @@ namespace BarcopoloWebApi.Entities
         [Required, MaxLength(50)]
         public string TrackingNumber { get; set; }
 
-        [Range(0, double.MaxValue)]
-        public decimal Fare { get; set; }
+        [Column(TypeName = "decimal(18,0)")]
+        [Range(0, 1000000000)]
+        public decimal Fare { get; set; } = 0;
 
-        [Range(0, double.MaxValue)]
-        public decimal Insurance { get; set; }
+        [Column(TypeName = "decimal(18,0)")]
+        [Range(0, 1000000000)]
+        public decimal Insurance { get; set; } = 0;
 
-        [Range(0, double.MaxValue)]
-        public decimal Vat { get; set; }
+        [Column(TypeName = "decimal(18,0)")]
+        [Range(0, 1000000000)]
+        public decimal Vat { get; set; } = 0;
+
+        //[Range(0, double.MaxValue)]
+        //public decimal? DeclaredValue { get; set; } = 0;
+        [Column(TypeName = "decimal(18,0)")]
+        [Range(0, 1000000000)]
+        public decimal? DeclaredValue { get; set; }
+        public bool IsInsuranceRequested { get; set; } = false;
 
         [Required, MaxLength(100)]
         public string SenderName { get; set; }
@@ -74,8 +85,6 @@ namespace BarcopoloWebApi.Entities
         public virtual Person FinalReceiver { get; set; }
 
         public virtual Address OriginAddress { get; set; }
-        public virtual Address DestinationAddress { get; set; }
-
         public virtual Warehouse Warehouse { get; set; }
 
         public virtual ICollection<OrderEvent> Events { get; set; } = new List<OrderEvent>();
@@ -85,6 +94,9 @@ namespace BarcopoloWebApi.Entities
         public virtual ICollection<OrderVehicle> OrderVehicles { get; set; } = new List<OrderVehicle>();
 
         public bool IsCompleted() => Status == OrderStatus.Delivered;
+
+        public bool CanBeCancelled() => Status < OrderStatus.Assigned;
+        public bool CanBeUpdated() => Status < OrderStatus.Assigned;
 
         public void SetStatus(OrderStatus newStatus)
         {

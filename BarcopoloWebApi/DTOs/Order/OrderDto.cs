@@ -1,6 +1,8 @@
 ﻿using BarcopoloWebApi.DTOs.Cargo;
 using BarcopoloWebApi.DTOs.OrderEvent;
 using BarcopoloWebApi.DTOs.Payment;
+using BarcopoloWebApi.Helper;
+using Newtonsoft.Json;
 
 namespace BarcopoloWebApi.DTOs.Order
 {
@@ -19,9 +21,11 @@ namespace BarcopoloWebApi.DTOs.Order
 
         public string ReceiverName { get; set; }
         public string ReceiverPhone { get; set; }
-
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Fare { get; set; }
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Insurance { get; set; }
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Vat { get; set; }
 
         public decimal TotalCost => Fare + Insurance + Vat;

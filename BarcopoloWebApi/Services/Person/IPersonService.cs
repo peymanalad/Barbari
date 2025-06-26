@@ -7,6 +7,7 @@ namespace BarcopoloWebApi.Services.Person
         Task<PersonDto> CreateAsync(CreatePersonDto dto, long currentUserId);
         Task<PersonDto> UpdateAsync(long id, UpdatePersonDto dto, long currentUserId);
         Task<bool> DeleteAsync(long id, long currentUserId);
+        Task<bool> ActivateAsync(long id, long currentUserId);
 
         Task<PersonDto> GetByIdAsync(long id, long currentUserId);
         Task<BarcopoloWebApi.Entities.Person> GetEntityByIdAsync(long id);

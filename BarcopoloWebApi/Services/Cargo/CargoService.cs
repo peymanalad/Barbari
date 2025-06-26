@@ -5,6 +5,8 @@ using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Mappers;
 using BarcopoloWebApi.Services.Cargo;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using BarcopoloWebApi.Extensions;
 
 public class CargoService : ICargoService
 {
@@ -26,13 +28,16 @@ public class CargoService : ICargoService
 
         if (dto.OwnerId != currentUserId && !currentUser.IsAdminOrSuperAdmin())
             throw new UnauthorizedAccessAppException("اجازه ثبت بار برای دیگران را ندارید.");
+        Order? order = null;
+        if (dto.OrderId is not null)
+        {
+            order = await _context.Orders
+                            .Include(o => o.Organization)
+                            .FirstOrDefaultAsync(o => o.Id == dto.OrderId)
+                        ?? throw new NotFoundException("سفارش یافت نشد.");
 
-        var order = await _context.Orders
-            .Include(o => o.Organization)
-            .FirstOrDefaultAsync(o => o.Id == dto.OrderId)
-            ?? throw new NotFoundException("سفارش یافت نشد.");
-
-        await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context);
+            await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context);
+        }
 
         if (dto.Weight <= 0)
             throw new ArgumentException("وزن بار باید بیشتر از صفر باشد.");
@@ -40,7 +45,7 @@ public class CargoService : ICargoService
         if (!dto.NeedsPackaging && dto.PackageCount > 0)
             throw new ArgumentException("وقتی بسته‌بندی غیرفعال است، تعداد بسته باید صفر باشد.");
 
-        var cargoType = await _context.CargoTypes.FirstOrDefaultAsync(ct => ct.Name == dto.CargoType);
+        var cargoType = await _context.CargoTypes.FirstOrDefaultAsync(ct => ct.Id == dto.CargoTypeId);
         if (cargoType == null)
             throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
 
@@ -50,10 +55,9 @@ public class CargoService : ICargoService
             var cargo = new Cargo
             {
                 OwnerId = dto.OwnerId,
-                CargoTypeId = cargoType.Id,
+                CargoTypeId = dto.CargoTypeId,
                 Title = dto.Title,
                 Contents = dto.Contents ?? "",
-                Value = dto.Value,
                 Weight = dto.Weight,
                 Length = dto.Length,
                 Width = dto.Width,
@@ -62,7 +66,7 @@ public class CargoService : ICargoService
                 PackagingType = dto.PackagingType ?? "",
                 PackageCount = dto.PackageCount,
                 Description = dto.Description ?? "",
-                OrderId = dto.OrderId
+                OrderId = order?.Id
             };
 
             _context.Cargos.Add(cargo);
@@ -196,7 +200,7 @@ public class CargoService : ICargoService
 
         var order = cargo.Order;
 
-        if (order.Status >= OrderStatus.Assigned)
+        if (order != null && order.Status >= OrderStatus.Assigned)
             throw new InvalidOperationException("بارهای سفارش تأیید شده قابل ویرایش نیستند.");
 
         var currentUser = await _context.Persons.FindAsync(currentUserId)
@@ -208,10 +212,10 @@ public class CargoService : ICargoService
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(dto.CargoType))
+            if (dto.CargoTypeId.HasValue)
             {
                 var cargoType = await _context.CargoTypes
-                    .FirstOrDefaultAsync(ct => ct.Name == dto.CargoType);
+                    .FirstOrDefaultAsync(ct => ct.Id == dto.CargoTypeId);
                 if (cargoType == null)
                     throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
 
@@ -230,7 +234,6 @@ public class CargoService : ICargoService
             cargo.Contents = dto.Contents ?? cargo.Contents;
             cargo.Description = dto.Description ?? cargo.Description;
 
-            if (dto.Value.HasValue) cargo.Value = dto.Value.Value;
             if (dto.Weight.HasValue) cargo.Weight = dto.Weight.Value;
             if (dto.Length.HasValue) cargo.Length = dto.Length.Value;
             if (dto.Width.HasValue) cargo.Width = dto.Width.Value;
@@ -370,7 +373,16 @@ public class CargoService : ICargoService
             query = query.Where(c => c.OrderId == filter.OrderId.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.TitleContains))
-            query = query.Where(c => c.Title.Contains(filter.TitleContains));
+        {
+            var keyword = filter.TitleContains.NormalizePersian().ToLower();
+            query = query.Where(c =>
+                c.Title != null &&
+                c.Title.ToLower()
+                    .Replace("ي", "ی")
+                    .Replace("ك", "ک")
+                    .Contains(keyword)
+            );
+        }
 
         if (filter.MinWeight.HasValue)
             query = query.Where(c => c.Weight >= filter.MinWeight.Value);
@@ -406,7 +418,6 @@ public class CargoService : ICargoService
         Id = cargo.Id,
         Title = cargo.Title,
         Contents = cargo.Contents,
-        Value = cargo.Value,
         Weight = cargo.Weight,
         Length = cargo.Length,
         Width = cargo.Width,

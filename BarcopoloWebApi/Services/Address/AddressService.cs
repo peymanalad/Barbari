@@ -21,7 +21,7 @@ public class AddressService : IAddressService
     {
         await EnsureCanAccessPersonAsync(dto.PersonId, currentUserId, "create");
 
-        var address = new Address
+        var address = new Entities.Address
         {
             PersonId = dto.PersonId,
             City = dto.City,
@@ -119,7 +119,7 @@ public class AddressService : IAddressService
         }
     }
 
-    private static AddressDto MapToDto(Address a) => new()
+    private static AddressDto MapToDto(Entities.Address a) => new()
     {
         Id = a.Id,
         Title = a.Title,

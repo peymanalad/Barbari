@@ -63,5 +63,9 @@ namespace BarcopoloWebApi.Entities
         {
             return Role == SystemRole.admin || Role == SystemRole.superadmin;
         }
+        public bool IsAdminOrSuperAdminOrMonitor()
+        {
+            return Role == SystemRole.admin || Role == SystemRole.superadmin || Role == SystemRole.monitor;
+        }
     }
 }

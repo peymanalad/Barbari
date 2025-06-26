@@ -12,7 +12,6 @@ namespace BarcopoloWebApi.Mappers
                 Id = cargo.Id,
                 Title = cargo.Title,
                 Contents = cargo.Contents,
-                Value = cargo.Value,
                 Weight = cargo.Weight,
                 Length = cargo.Length,
                 Width = cargo.Width,

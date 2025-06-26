@@ -8,13 +8,13 @@ namespace BarcopoloWebApi.Services.Order
     {
         Task<OrderDto> CreateAsync(CreateOrderDto dto, long currentUserId);
         Task<OrderDto> UpdateAsync(long id, UpdateOrderDto dto, long currentUserId);
-        Task<bool> CancelAsync(long id, long currentUserId);
+        Task CancelAsync(long id, long currentUserId, string? cancellationReason = null);
 
         Task<OrderDto> GetByIdAsync(long id, long currentUserId);
         Task<OrderStatusDto> GetByTrackingNumberAsync(string trackingNumber);
-        Task<IEnumerable<OrderDto>> GetByOwnerAsync(long ownerId, long currentUserId);
-        Task<OrderStatusDto> ChangeStatusAsync(long orderId, OrderStatus newStatus, string? remarks, long currentUserId);
-
+        Task<PagedResult<OrderDto>> GetByOwnerAsync(long ownerId, long currentUserId, int pageNumber, int pageSize);
+        Task<PagedResult<OrderDto>> GetAllAsync(long currentUserId, int pageNumber, int pageSize);
+        Task ChangeStatusAsync(long orderId, ChangeOrderStatusDto dto, long currentUserId);
 
     }
 }

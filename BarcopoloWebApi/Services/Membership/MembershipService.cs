@@ -91,18 +91,6 @@ namespace BarcopoloWebApi.Services
 
             await _context.OrganizationMemberships.AddAsync(membership);
 
-            var addressToInherit = dto.BranchId.HasValue
-                ? await _context.SubOrganizations
-                    .Where(b => b.Id == dto.BranchId)
-                    .Include(b => b.OriginAddress)
-                    .Select(b => b.OriginAddress)
-                    .FirstOrDefaultAsync()
-                : await _context.Organizations
-                    .Where(o => o.Id == dto.OrganizationId)
-                    .Include(o => o.OriginAddress)
-                    .Select(o => o.OriginAddress)
-                    .FirstOrDefaultAsync();
-
             await _context.SaveChangesAsync();
             _logger.LogInformation("عضویت برای شخص {PersonId} با نقش {Role} در سازمان {OrgId} ایجاد شد", dto.PersonId, dto.Role, dto.OrganizationId);
 
