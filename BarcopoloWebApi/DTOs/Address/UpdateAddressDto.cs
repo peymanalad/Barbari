@@ -27,5 +27,10 @@ namespace BarcopoloWebApi.DTOs.Address
 
         [MaxLength(250)]
         public string? AdditionalInfo { get; set; }
+
+        /// <summary>
+        /// فقط توسط orgadmin قابل تغییر است و باید مربوط به همان سازمان باشد
+        /// </summary>
+        public long? BranchId { get; set; }
     }
 }

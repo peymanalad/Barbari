@@ -7,8 +7,9 @@ namespace BarcopoloWebApi.Entities
     {
         public long Id { get; set; }
 
-        [Required]
-        public long PersonId { get; set; }
+        public long? PersonId { get; set; }
+        public long? OrganizationId { get; set; }
+        public long? BranchId { get; set; }
 
         [Required, MaxLength(100)]
         public string City { get; set; }
@@ -17,7 +18,7 @@ namespace BarcopoloWebApi.Entities
         public string Province { get; set; }
 
         [MaxLength(100)]
-        public string Title { get; set; } 
+        public string Title { get; set; }
 
         [MaxLength(20)]
         public string PostalCode { get; set; }
@@ -35,8 +36,13 @@ namespace BarcopoloWebApi.Entities
         public string? AdditionalInfo { get; set; }
 
         [JsonIgnore]
-        public virtual Person Person { get; set; }
+        public virtual Person? Person { get; set; }
 
+        [JsonIgnore]
+        public virtual Organization? Organization { get; set; }
+
+        [JsonIgnore]
+        public virtual SubOrganization? Branch { get; set; }
 
         public string GetBrief()
         {

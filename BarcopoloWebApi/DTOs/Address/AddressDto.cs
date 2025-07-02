@@ -1,6 +1,10 @@
 ﻿public class AddressDto
 {
     public long Id { get; set; }
+    public long? PersonId { get; set; }
+    public long? OrganizationId { get; set; }
+    public long? BranchId { get; set; }
+
     public string Title { get; set; }
     public string FullAddress { get; set; }
     public string City { get; set; }

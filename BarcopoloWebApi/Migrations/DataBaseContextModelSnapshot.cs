@@ -34,6 +34,9 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<long?>("BranchId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -44,7 +47,10 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<long>("PersonId")
+                    b.Property<long?>("OrganizationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("PersonId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Plate")
@@ -73,6 +79,10 @@ namespace BarcopoloWebApi.Migrations
                         .HasColumnType("nvarchar(10)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("PersonId");
 
@@ -234,7 +244,6 @@ namespace BarcopoloWebApi.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("InsuranceNumber")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
@@ -245,7 +254,6 @@ namespace BarcopoloWebApi.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("LicenseIssuePlace")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -790,10 +798,25 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("PlateNumber")
+                    b.Property<string>("PlateIranCode")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("PlateLetter")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<string>("PlateThreeDigit")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("PlateTwoDigit")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
 
                     b.Property<string>("SmartCardCode")
                         .IsRequired()
@@ -1101,11 +1124,22 @@ namespace BarcopoloWebApi.Migrations
 
             modelBuilder.Entity("BarcopoloWebApi.Entities.Address", b =>
                 {
+                    b.HasOne("BarcopoloWebApi.Entities.SubOrganization", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId");
+
+                    b.HasOne("BarcopoloWebApi.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId");
+
                     b.HasOne("BarcopoloWebApi.Entities.Person", "Person")
                         .WithMany("Addresses")
                         .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Organization");
 
                     b.Navigation("Person");
                 });

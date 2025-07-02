@@ -1,64 +1,34 @@
-﻿using BarcopoloWebApi.Services.Address;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace BarcopoloWebApi.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class FrequentAddressController : ControllerBase
 {
-    [Authorize]
-    [ApiController]
-    [Route("api/[controller]")]
-    public class FrequentAddressController : ControllerBase
+    private readonly IFrequentAddressService _frequentAddressService;
+
+    public FrequentAddressController(IFrequentAddressService frequentAddressService)
     {
-        private readonly IFrequentAddressService _frequentAddressService;
-        private readonly ILogger<FrequentAddressController> _logger;
-        private readonly IHttpContextAccessor _contextAccessor;
+        _frequentAddressService = frequentAddressService;
+    }
 
-        public FrequentAddressController(
-            IFrequentAddressService frequentAddressService,
-            ILogger<FrequentAddressController> logger,
-            IHttpContextAccessor contextAccessor)
-        {
-            _frequentAddressService = frequentAddressService;
-            _logger = logger;
-            _contextAccessor = contextAccessor;
-        }
+    [HttpPost("origins")]
+    public async Task<ActionResult<List<FrequentAddressDto>>> GetOrigins([FromBody] FrequentAddressScope scope)
+    {
+        var currentUserId = GetCurrentUserId();
+        var result = await _frequentAddressService.GetOriginsAsync(currentUserId, scope);
+        return Ok(result);
+    }
 
-        private long CurrentUserId =>
-            long.Parse(_contextAccessor.HttpContext?.User.Claims.First(c => c.Type == "UserId").Value ?? "0");
+    [HttpPost("destinations")]
+    public async Task<ActionResult<List<FrequentAddressDto>>> GetDestinations([FromBody] FrequentAddressScope scope)
+    {
+        var currentUserId = GetCurrentUserId();
+        var result = await _frequentAddressService.GetDestinationsAsync(currentUserId, scope);
+        return Ok(result);
+    }
 
-        private IActionResult HandleError(Exception ex, string message, object? data = null)
-        {
-            _logger.LogError(ex, message);
-            return BadRequest(new { error = ex.Message, data });
-        }
-
-        [HttpGet("origin")]
-        public async Task<IActionResult> GetOrigins()
-        {
-            try
-            {
-                var origins = await _frequentAddressService.GetAccessibleOriginsAsync(CurrentUserId);
-                return Ok(origins);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در دریافت آدرس‌های مبدا");
-            }
-        }
-
-        [HttpGet("destination")]
-        public async Task<IActionResult> GetDestinations()
-        {
-            try
-            {
-                var destinations = await _frequentAddressService.GetAccessibleDestinationsAsync(CurrentUserId);
-                return Ok(destinations);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در دریافت آدرس‌های مقصد");
-            }
-        }
+    private long GetCurrentUserId()
+    {
+        return long.Parse(User.FindFirst("sub")?.Value ?? "0");
     }
 }

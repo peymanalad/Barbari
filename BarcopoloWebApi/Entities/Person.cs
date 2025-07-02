@@ -7,6 +7,7 @@ namespace BarcopoloWebApi.Entities
 {
     public class Person
     {
+        [Key]
         public long Id { get; set; }
 
         [Required, MaxLength(50)]

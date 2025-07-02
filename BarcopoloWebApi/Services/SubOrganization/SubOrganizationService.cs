@@ -54,7 +54,7 @@ public class SubOrganizationService : ISubOrganizationService
 
     public async Task<IEnumerable<SubOrganizationDto>> GetByOrganizationIdAsync(long organizationId, long currentUserId)
     {
-        await EnsureIsOrgMemberOrAdmin(organizationId, currentUserId);
+        await EnsureIsOrgAdminOrHigher(organizationId, currentUserId);
 
         var branches = await _context.SubOrganizations
             .Where(b => b.OrganizationId == organizationId)
@@ -63,6 +63,7 @@ public class SubOrganizationService : ISubOrganizationService
 
         return branches.Select(MapToDto).ToList();
     }
+
 
     public async Task<SubOrganizationDto> UpdateAsync(long id, UpdateSubOrganizationDto dto, long currentUserId)
     {
@@ -86,8 +87,7 @@ public class SubOrganizationService : ISubOrganizationService
 
     public async Task<bool> DeleteAsync(long id, long currentUserId)
     {
-        await EnsureHasEditPermission(id, currentUserId);
-
+        await EnsureHasDeletePermission(id, currentUserId);
         var branch = await _context.SubOrganizations
             .Include(b => b.Memberships)
             .FirstOrDefaultAsync(b => b.Id == id);
@@ -108,14 +108,29 @@ public class SubOrganizationService : ISubOrganizationService
     private async Task<bool> IsSuperAdminAsync(long personId) =>
         await _context.Persons.AnyAsync(p => p.Id == personId && p.Role == SystemRole.superadmin);
 
+    private async Task<bool> IsAdminAsync(long personId) =>
+        await _context.Persons.AnyAsync(p => p.Id == personId && p.Role == SystemRole.admin);
+
     private async Task<bool> IsOrgAdminAsync(long orgId, long personId) =>
         await _context.OrganizationMemberships
-            .AnyAsync(m => m.OrganizationId == orgId && m.PersonId == personId && m.Role == SystemRole.admin);
+            .AnyAsync(m =>
+                m.OrganizationId == orgId &&
+                m.PersonId == personId &&
+                m.Role == SystemRole.orgadmin);
 
     private async Task<bool> IsBranchAdminAsync(long branchId, long personId)
     {
         return await _context.OrganizationMemberships
-            .AnyAsync(m => m.BranchId == branchId && m.PersonId == personId && m.Role == SystemRole.superadmin);
+            .AnyAsync(m =>
+                m.BranchId == branchId &&
+                m.PersonId == personId &&
+                m.Role == SystemRole.branchadmin);
+    }
+
+    private async Task<bool> IsBranchMemberAsync(long branchId, long personId)
+    {
+        return await _context.OrganizationMemberships
+            .AnyAsync(m => m.BranchId == branchId && m.PersonId == personId);
     }
 
     private async Task<bool> IsOrgMemberAsync(long orgId, long personId)
@@ -134,37 +149,81 @@ public class SubOrganizationService : ISubOrganizationService
 
     private async Task EnsureHasCreatePermission(long orgId, long userId)
     {
-        if (!await IsSuperAdminAsync(userId) && !await IsOrgAdminAsync(orgId, userId))
+        if (!await IsSuperAdminAsync(userId) &&
+            !await IsAdminAsync(userId) &&
+            !await IsOrgAdminAsync(orgId, userId))
+        {
             throw new UnauthorizedAccessException("اجازه ایجاد شعبه برای این سازمان را ندارید");
+        }
     }
 
     private async Task EnsureHasViewPermission(long branchId, long userId)
     {
         var orgId = await GetOrgIdFromBranchAsync(branchId)
-            ?? throw new Exception("شعبه یافت نشد");
+                    ?? throw new Exception("شعبه یافت نشد");
 
-        if (!await IsSuperAdminAsync(userId) && !await IsOrgMemberAsync(orgId, userId))
+        if (await IsSuperAdminAsync(userId) || await IsAdminAsync(userId))
+            return;
+
+        var isOrgAdmin = await IsOrgAdminAsync(orgId, userId);
+        var isBranchAdmin = await IsBranchAdminAsync(branchId, userId);
+        var isBranchMember = await IsBranchMemberAsync(branchId, userId);
+
+        if (!isOrgAdmin && !isBranchAdmin && !isBranchMember)
             throw new UnauthorizedAccessException("اجازه مشاهده این شعبه را ندارید");
     }
+
 
     private async Task EnsureHasEditPermission(long branchId, long userId)
     {
         var orgId = await GetOrgIdFromBranchAsync(branchId)
-            ?? throw new Exception("شعبه یافت نشد");
+                    ?? throw new Exception("شعبه یافت نشد");
 
-        if (!await IsSuperAdminAsync(userId) &&
-            !await IsOrgAdminAsync(orgId, userId) &&
-            !await IsBranchAdminAsync(branchId, userId))
-        {
-            throw new UnauthorizedAccessException("اجازه ویرایش یا حذف این شعبه را ندارید");
-        }
+        if (await IsSuperAdminAsync(userId) || await IsAdminAsync(userId))
+            return;
+
+        var isOrgAdmin = await IsOrgAdminAsync(orgId, userId);
+        var isBranchAdmin = await IsBranchAdminAsync(branchId, userId);
+
+        if (!isOrgAdmin && !isBranchAdmin)
+            throw new UnauthorizedAccessException("اجازه ویرایش این شعبه را ندارید");
+    }
+
+
+    private async Task EnsureHasDeletePermission(long branchId, long userId)
+    {
+        var orgId = await GetOrgIdFromBranchAsync(branchId)
+                    ?? throw new Exception("شعبه یافت نشد");
+
+        if (await IsSuperAdminAsync(userId) || await IsAdminAsync(userId))
+            return;
+
+        if (!await IsOrgAdminAsync(orgId, userId))
+            throw new UnauthorizedAccessException("اجازه حذف این شعبه را ندارید");
     }
 
     private async Task EnsureIsOrgMemberOrAdmin(long orgId, long userId)
     {
-        if (!await IsSuperAdminAsync(userId) && !await IsOrgMemberAsync(orgId, userId))
+        if (await IsSuperAdminAsync(userId) || await IsAdminAsync(userId))
+            return;
+
+        if (!await IsOrgMemberAsync(orgId, userId) && !await IsOrgAdminAsync(orgId, userId))
+        {
             throw new UnauthorizedAccessException("دسترسی به سازمان ندارید");
+        }
     }
+    private async Task EnsureIsOrgAdminOrHigher(long orgId, long userId)
+    {
+        if (await IsSuperAdminAsync(userId) || await IsAdminAsync(userId))
+            return;
+
+        if (!await IsOrgAdminAsync(orgId, userId))
+        {
+            throw new UnauthorizedAccessException("دسترسی به لیست شعبه‌های این سازمان را ندارید");
+        }
+    }
+
+
 
     private async Task<SubOrganizationDto> MapToDtoAsync(Entities.SubOrganization entity)
     {

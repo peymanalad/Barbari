@@ -116,5 +116,21 @@ namespace BarcopoloWebApi.Controllers
                 return HandleError(ex, "Error retrieving drivers");
             }
         }
+        [AllowAnonymous]
+        [HttpPost("self-register")]
+        public async Task<IActionResult> SelfRegister([FromBody] SelfRegisterDriverDto dto)
+        {
+            _logger.LogInformation("Self-register driver attempt for {Phone}", dto.PhoneNumber);
+            try
+            {
+                var result = await _driverService.SelfRegisterAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (Exception ex)
+            {
+                return HandleError(ex, "خطا در ثبت‌نام راننده", dto);
+            }
+        }
+
     }
 }

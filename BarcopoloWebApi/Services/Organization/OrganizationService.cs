@@ -54,7 +54,8 @@ namespace BarcopoloWebApi.Services.Organization
             if (org == null)
                 throw new Exception("سازمان یافت نشد.");
 
-            if (!await IsSuperAdmin(currentUserId) && !org.HasMember(currentUserId))
+            //if (!await IsSuperAdmin(currentUserId) && !org.HasMember(currentUserId))
+            if (!await IsAdminOrSuperAdmin(currentUserId) && !org.HasMember(currentUserId))
                 throw new Exception("عدم دسترسی");
 
             return MapToDto(org);
@@ -62,7 +63,8 @@ namespace BarcopoloWebApi.Services.Organization
 
         public async Task<IEnumerable<OrganizationDto>> GetAllAsync(long currentUserId)
         {
-            await EnsureIsSuperAdmin(currentUserId);
+            //await EnsureIsSuperAdmin(currentUserId);
+            await EnsureIsAdminOrSuperAdminAsync(currentUserId);
 
             var organizations = await _context.Organizations
                 .Include(o => o.AllowedCargoTypes)
@@ -81,7 +83,8 @@ namespace BarcopoloWebApi.Services.Organization
             if (org == null)
                 throw new Exception("سازمان یافت نشد.");
 
-            if (!await IsSuperAdmin(currentUserId) && !await IsOrgAdmin(id, currentUserId))
+            //if (!await IsSuperAdmin(currentUserId) && !await IsOrgAdmin(id, currentUserId))
+            if (!await IsAdminOrSuperAdmin(currentUserId) && !await IsOrgAdmin(id, currentUserId))
                 throw new UnauthorizedAccessException("شما مجاز به ویرایش این سازمان نیستید.");
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
@@ -100,7 +103,8 @@ namespace BarcopoloWebApi.Services.Organization
 
         public async Task<bool> DeleteAsync(long id, long currentUserId)
         {
-            await EnsureIsSuperAdmin(currentUserId);
+            //await EnsureIsSuperAdmin(currentUserId);
+            await EnsureIsAdminOrSuperAdminAsync(currentUserId);
 
             var org = await _context.Organizations
                 .Include(o => o.Memberships)
@@ -148,10 +152,17 @@ namespace BarcopoloWebApi.Services.Organization
                 .AnyAsync(p => p.Id == userId && p.Role.ToString().ToLower() == "superadmin");
         }
 
+        private async Task<bool> IsAdminOrSuperAdmin(long userId)
+        {
+            return await _context.Persons
+                .AnyAsync(p => p.Id == userId && (p.Role == SystemRole.admin || p.Role == SystemRole.superadmin));
+        }
+
+
         private async Task<bool> IsOrgAdmin(long orgId, long userId)
         {
             return await _context.OrganizationMemberships
-                .AnyAsync(m => m.OrganizationId == orgId && m.PersonId == userId && m.Role == SystemRole.admin);
+                .AnyAsync(m => m.OrganizationId == orgId && m.PersonId == userId && m.Role == SystemRole.orgadmin);
         }
 
         private async Task<OrganizationDto> MapToDtoAsync(long organizationId)

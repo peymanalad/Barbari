@@ -1,6 +1,7 @@
 ﻿using BarcopoloWebApi.Data;
 using BarcopoloWebApi.DTOs.Warehouse;
 using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,12 +19,12 @@ public class WarehouseService : IWarehouseService
     private async Task EnsureAdminAccessAsync(long userId)
     {
         var user = await _context.Persons.FindAsync(userId)
-            ?? throw new Exception("کاربر یافت نشد.");
+            ?? throw new AppException("کاربر یافت نشد.");
 
         if (!user.IsAdminOrSuperAdmin())
         {
             _logger.LogWarning("User {UserId} unauthorized access attempt", userId);
-            throw new Exception("شما دسترسی لازم را ندارید.");
+            throw new AppException("شما دسترسی لازم را ندارید.");
         }
     }
 
@@ -61,7 +62,7 @@ public class WarehouseService : IWarehouseService
         var warehouse = await _context.Warehouses
             .Include(w => w.Address)
             .FirstOrDefaultAsync(w => w.Id == id)
-            ?? throw new Exception("انبار یافت نشد.");
+            ?? throw new AppException("انبار یافت نشد.");
 
         return MapToDto(warehouse);
     }
@@ -82,7 +83,7 @@ public class WarehouseService : IWarehouseService
         await EnsureAdminAccessAsync(currentUserId);
 
         var warehouse = await _context.Warehouses.FindAsync(id)
-            ?? throw new Exception("انبار یافت نشد.");
+            ?? throw new AppException("انبار یافت نشد.");
 
         if (!string.IsNullOrWhiteSpace(dto.WarehouseName))
             warehouse.WarehouseName = dto.WarehouseName;
@@ -143,11 +144,19 @@ public class WarehouseService : IWarehouseService
         InternalTelephone = w.InternalTelephone,
         AddressSummary = w.Address?.FullAddress ?? "—",
         IsActive = w.IsActive,
+
         ManagerPercentage = w.ManagerPercentage,
         Rent = w.Rent,
         TerminalPercentage = w.TerminalPercentage,
         VatPercentage = w.VatPercentage,
         InsuranceAmount = w.InsuranceAmount,
+        IncomePercentage = w.IncomePercentage,
+        CommissionPercentage = w.CommissionPercentage,
+        UnloadingPercentage = w.UnloadingPercentage,
+        DriverPaymentPercentage = w.DriverPaymentPercentage,
+        PerCargoInsurance = w.PerCargoInsurance,
+        ReceiptIssuingCost = w.ReceiptIssuingCost,
+
         PrintText = w.PrintText ?? "",
         IsCargoValueMandatory = w.IsCargoValueMandatory,
         IsDriverNetMandatory = w.IsDriverNetMandatory

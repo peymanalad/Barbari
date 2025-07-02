@@ -5,8 +5,8 @@ using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace BarcopoloWebApi.Services
@@ -26,12 +26,7 @@ namespace BarcopoloWebApi.Services
         {
             _logger.LogInformation("User {UserId} requested to create a Bargir", currentUserId);
 
-            var currentUser = await _context.Persons.FindAsync(currentUserId);
-            if (currentUser == null || (currentUser.Role != SystemRole.admin && currentUser.Role != SystemRole.superadmin))
-            {
-                _logger.LogWarning("Unauthorized attempt to create a Bargir by user {UserId}", currentUserId);
-                throw new AppException("شما مجاز به ایجاد بارگیر نیستید.");
-            }
+            await EnsureAdminAccess(currentUserId);
 
             if (dto.MaxCapacity < dto.MinCapacity)
             {
@@ -44,16 +39,14 @@ namespace BarcopoloWebApi.Services
             {
                 vehicle = await _context.Vehicles.FindAsync(dto.VehicleId.Value);
                 if (vehicle == null)
-                {
-                    _logger.LogWarning("Vehicle with Id {VehicleId} not found", dto.VehicleId.Value);
                     throw new NotFoundException("وسیله نقلیه مورد نظر یافت نشد.");
-                }
 
                 if (vehicle.IsVan)
-                {
-                    _logger.LogWarning("Attempt to assign Bargir to a Van vehicle {VehicleId}", vehicle.Id);
                     throw new AppException("نمی‌توان بارگیر را به خودرو وانت اختصاص داد.");
-                }
+
+                var existing = await _context.Bargirs.AnyAsync(b => b.VehicleId == vehicle.Id);
+                if (existing)
+                    throw new AppException("برای این وسیله نقلیه قبلاً بارگیر ثبت شده است.");
             }
 
             var bargir = new Bargir
@@ -69,15 +62,7 @@ namespace BarcopoloWebApi.Services
 
             _logger.LogInformation("Bargir with Id {BargirId} created by user {UserId}", bargir.Id, currentUserId);
 
-            return new BargirDto
-            {
-                Id = bargir.Id,
-                Name = bargir.Name,
-                MinCapacity = bargir.MinCapacity,
-                MaxCapacity = bargir.MaxCapacity,
-                VehicleId = bargir.VehicleId,
-                VehiclePlateNumber = vehicle?.PlateNumber
-            };
+            return await MapToDtoAsync(bargir.Id);
         }
 
         public async Task<BargirDto> GetByIdAsync(long id, long currentUserId)
@@ -99,11 +84,13 @@ namespace BarcopoloWebApi.Services
                 .ToListAsync();
 
             return bargirs.Select(MapToDto);
+
         }
+
         public async Task<BargirDto> UpdateAsync(long id, UpdateBargirDto dto, long currentUserId)
         {
             await EnsureAdminAccess(currentUserId);
-            _logger.LogInformation("Updating Bargir with Id {Id}, Data: {@Dto}", id, dto);
+            _logger.LogInformation("Updating Bargir with Id {Id}", id);
 
             var bargir = await _context.Bargirs.FindAsync(id)
                          ?? throw new NotFoundException("بارگیر یافت نشد.");
@@ -120,10 +107,15 @@ namespace BarcopoloWebApi.Services
             if (dto.VehicleId.HasValue)
             {
                 var vehicle = await _context.Vehicles.FindAsync(dto.VehicleId.Value)
-                              ?? throw new AppException("وسیله نقلیه مورد نظر یافت نشد.");
+                              ?? throw new NotFoundException("وسیله نقلیه یافت نشد.");
 
                 if (vehicle.IsVan)
-                    throw new AppException("نمی‌توان بارگیر را به ون اختصاص داد.");
+                    throw new AppException("نمی‌توان بارگیر را به خودرو وانت اختصاص داد.");
+
+                var duplicate = await _context.Bargirs
+                    .AnyAsync(b => b.VehicleId == dto.VehicleId && b.Id != id);
+                if (duplicate)
+                    throw new AppException("برای این وسیله نقلیه قبلاً بارگیر ثبت شده است.");
 
                 bargir.VehicleId = dto.VehicleId;
             }
@@ -133,6 +125,7 @@ namespace BarcopoloWebApi.Services
 
             return await MapToDtoAsync(id);
         }
+
         public async Task<bool> DeleteAsync(long id, long currentUserId)
         {
             await EnsureAdminAccess(currentUserId);
@@ -151,6 +144,7 @@ namespace BarcopoloWebApi.Services
             _logger.LogInformation("Bargir with Id {Id} deleted", id);
             return true;
         }
+
         public async Task AssignToVehicleAsync(long bargirId, long vehicleId, long currentUserId)
         {
             await EnsureAdminAccess(currentUserId);
@@ -163,7 +157,12 @@ namespace BarcopoloWebApi.Services
                           ?? throw new NotFoundException("وسیله نقلیه یافت نشد.");
 
             if (vehicle.IsVan)
-                throw new AppException("نمی‌توان بارگیر را به ون اختصاص داد.");
+                throw new AppException("نمی‌توان بارگیر را به خودرو وانت اختصاص داد.");
+
+            var duplicate = await _context.Bargirs
+                .AnyAsync(b => b.VehicleId == vehicleId && b.Id != bargirId);
+            if (duplicate)
+                throw new AppException("برای این وسیله نقلیه قبلاً بارگیر ثبت شده است.");
 
             bargir.VehicleId = vehicleId;
 
@@ -171,14 +170,13 @@ namespace BarcopoloWebApi.Services
             _logger.LogInformation("Bargir {BargirId} assigned to Vehicle {VehicleId}", bargirId, vehicleId);
         }
 
-
         private async Task EnsureAdminAccess(long userId)
         {
             var user = await _context.Persons.FindAsync(userId)
                        ?? throw new ForbiddenAccessException("کاربر یافت نشد");
 
-            if (user.Role.ToString() is not ("admin" or "superadmin"))
-                throw new ForbiddenAccessException("دسترسی غیر مجاز");
+            if (!user.IsAdminOrSuperAdmin())
+                throw new ForbiddenAccessException("دسترسی غیرمجاز");
         }
 
         private async Task<BargirDto?> MapToDtoAsync(long id)
@@ -190,16 +188,19 @@ namespace BarcopoloWebApi.Services
             return bargir == null ? null : MapToDto(bargir);
         }
 
-        private BargirDto MapToDto(Bargir b) => new()
+        private static BargirDto MapToDto(Bargir b) => new()
         {
             Id = b.Id,
             Name = b.Name,
             MinCapacity = b.MinCapacity,
             MaxCapacity = b.MaxCapacity,
             VehicleId = b.VehicleId,
-            VehiclePlateNumber = b.Vehicle?.PlateNumber
+            VehiclePlateNumber = b.Vehicle?.PlateNumber,
+            PlateIranCode = b.Vehicle?.PlateIranCode,
+            PlateThreeDigit = b.Vehicle?.PlateThreeDigit,
+            PlateLetter = b.Vehicle?.PlateLetter,
+            PlateTwoDigit = b.Vehicle?.PlateTwoDigit
         };
-
 
     }
 }

@@ -1,6 +1,8 @@
 ﻿using BarcopoloWebApi.Data;
 using BarcopoloWebApi.DTOs.Address;
 using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -19,41 +21,43 @@ public class AddressService : IAddressService
 
     public async Task<AddressDto> CreateAsync(CreateAddressDto dto, long currentUserId)
     {
-        await EnsureCanAccessPersonAsync(dto.PersonId, currentUserId, "create");
+        await EnsureHasCreateAccessAsync(dto, currentUserId);
 
-        var address = new Entities.Address
+        var address = new Address
         {
             PersonId = dto.PersonId,
+            OrganizationId = dto.OrganizationId,
+            BranchId = dto.BranchId,
+            Title = dto.Title,
             City = dto.City,
             Province = dto.Province,
-            Title = dto.Title,
+            FullAddress = dto.FullAddress,
             PostalCode = dto.PostalCode,
             Plate = dto.Plate,
             Unit = dto.Unit,
-            FullAddress = dto.FullAddress,
             AdditionalInfo = dto.AdditionalInfo
         };
 
         _context.Addresses.Add(address);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("آدرس جدید با شناسه {Id} ایجاد شد", address.Id);
+        _logger.LogInformation("آدرس جدید با شناسه {Id} ثبت شد", address.Id);
         return MapToDto(address);
     }
 
     public async Task<AddressDto> GetByIdAsync(long id, long currentUserId)
     {
         var address = await _context.Addresses.FindAsync(id)
-            ?? throw new Exception("آدرس یافت نشد.");
+            ?? throw new NotFoundException("آدرس یافت نشد.");
 
-        await EnsureCanAccessPersonAsync(address.PersonId, currentUserId, "view");
-
+        await EnsureHasViewAccessAsync(address, currentUserId);
         return MapToDto(address);
     }
 
     public async Task<IEnumerable<AddressDto>> GetByPersonIdAsync(long personId, long currentUserId)
     {
-        await EnsureCanAccessPersonAsync(personId, currentUserId, "view");
+        if (personId != currentUserId && !await IsSuperadminAsync(currentUserId))
+            throw new ForbiddenAccessException("شما فقط می‌توانید آدرس‌های خودتان را مشاهده کنید");
 
         var addresses = await _context.Addresses
             .Where(a => a.PersonId == personId)
@@ -65,33 +69,95 @@ public class AddressService : IAddressService
     public async Task<AddressDto> UpdateAsync(long id, UpdateAddressDto dto, long currentUserId)
     {
         var address = await _context.Addresses.FindAsync(id)
-            ?? throw new Exception("آدرس یافت نشد.");
+            ?? throw new NotFoundException("آدرس یافت نشد.");
 
+        var user = await _context.Persons
+            .Include(p => p.Memberships)
+            .FirstOrDefaultAsync(p => p.Id == currentUserId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
-        await EnsureCanAccessPersonAsync(address.PersonId, currentUserId, "update");
+        if (user.IsSuperAdmin())
+        {
+            if (dto.BranchId.HasValue)
+            {
+                var isBranchValid = await _context.SubOrganizations.AnyAsync(b =>
+                    b.Id == dto.BranchId && b.OrganizationId == address.OrganizationId);
 
-        address.City = dto.City ?? address.City;
-        address.Province = dto.Province ?? address.Province;
-        address.Title = dto.Title ?? address.Title;
-        address.PostalCode = dto.PostalCode ?? address.PostalCode;
-        address.Plate = dto.Plate ?? address.Plate;
-        address.Unit = dto.Unit ?? address.Unit;
-        address.FullAddress = dto.FullAddress ?? address.FullAddress;
-        address.AdditionalInfo = dto.AdditionalInfo ?? address.AdditionalInfo;
+                if (!isBranchValid)
+                    throw new ForbiddenAccessException("شعبه موردنظر متعلق به این سازمان نیست.");
 
+                address.BranchId = dto.BranchId;
+            }
+
+            ApplyAddressUpdate(address, dto);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("آدرس {Id} توسط superadmin بروزرسانی شد", id);
+            return MapToDto(address);
+        }
+
+        // جلوگیری از تغییر سازمان
+        // چون DTO سازمان نداره، بررسی میکنیم که مقدار موجود دستکاری نشه
+        var originalOrgId = address.OrganizationId;
+
+        if (address.PersonId.HasValue)
+        {
+            if (address.PersonId != currentUserId)
+                throw new ForbiddenAccessException("شما فقط می‌توانید آدرس شخصی خودتان را ویرایش کنید");
+        }
+        else if (originalOrgId.HasValue && address.BranchId.HasValue)
+        {
+            var isBranchAdmin = user.Memberships.Any(m =>
+                m.OrganizationId == originalOrgId &&
+                m.BranchId == address.BranchId &&
+                m.Role == SystemRole.branchadmin);
+
+            var isOrgAdmin = user.Memberships.Any(m =>
+                m.OrganizationId == originalOrgId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isBranchAdmin && !isOrgAdmin)
+                throw new ForbiddenAccessException("شما اجازه ویرایش آدرس این شعبه را ندارید.");
+
+            if (dto.BranchId.HasValue && dto.BranchId != address.BranchId)
+            {
+                if (!isOrgAdmin)
+                    throw new ForbiddenAccessException("فقط orgadmin می‌تواند شعبه را تغییر دهد.");
+
+                var isBranchValid = await _context.SubOrganizations.AnyAsync(b =>
+                    b.Id == dto.BranchId && b.OrganizationId == originalOrgId);
+
+                if (!isBranchValid)
+                    throw new ForbiddenAccessException("شعبه انتخاب‌شده متعلق به این سازمان نیست.");
+
+                address.BranchId = dto.BranchId;
+            }
+        }
+        else if (originalOrgId.HasValue)
+        {
+            var isOrgAdmin = user.Memberships.Any(m =>
+                m.OrganizationId == originalOrgId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isOrgAdmin)
+                throw new ForbiddenAccessException("شما اجازه ویرایش آدرس این سازمان را ندارید.");
+        }
+        else
+        {
+            throw new AppException("نوع آدرس برای ویرایش قابل تشخیص نیست.");
+        }
+
+        ApplyAddressUpdate(address, dto);
         await _context.SaveChangesAsync();
-
-        _logger.LogInformation("آدرس با شناسه {Id} با موفقیت بروزرسانی شد", id);
+        _logger.LogInformation("آدرس {Id} توسط کاربر {UserId} بروزرسانی شد", id, currentUserId);
         return MapToDto(address);
     }
 
     public async Task<bool> DeleteAsync(long id, long currentUserId)
     {
         var address = await _context.Addresses.FindAsync(id)
-            ?? throw new Exception("آدرس یافت نشد.");
+            ?? throw new NotFoundException("آدرس یافت نشد.");
 
-
-        await EnsureCanAccessPersonAsync(address.PersonId, currentUserId, "delete");
+        await EnsureHasEditAccessAsync(address, currentUserId);
 
         _context.Addresses.Remove(address);
         await _context.SaveChangesAsync();
@@ -100,26 +166,227 @@ public class AddressService : IAddressService
         return true;
     }
 
-    private async Task EnsureCanAccessPersonAsync(long personId, long currentUserId, string action)
+    public async Task<IEnumerable<AddressDto>> GetByOrganizationIdAsync(long organizationId, long currentUserId)
     {
-        var currentPerson = await _context.Persons.FindAsync(currentUserId)
-            ?? throw new Exception("کاربر جاری یافت نشد.");
+        var user = await _context.Persons
+                       .Include(p => p.Memberships)
+                       .FirstOrDefaultAsync(p => p.Id == currentUserId)
+                   ?? throw new NotFoundException("کاربر جاری یافت نشد");
 
-        if (currentPerson.Id != personId && currentPerson.Role != Enums.SystemRole.superadmin)
+        if (user.IsSuperAdmin() || user.IsAdmin())
+            return await GetOrganizationAddresses(organizationId);
+
+        if (user.Memberships.Any(m => m.OrganizationId == organizationId && m.Role == SystemRole.orgadmin))
+            return await GetOrganizationAddresses(organizationId);
+
+        var hasBranch = await _context.SubOrganizations.AnyAsync(b => b.OrganizationId == organizationId);
+
+        if (!hasBranch && user.Memberships.Any(m => m.OrganizationId == organizationId))
+            return await GetOrganizationAddresses(organizationId);
+
+        throw new ForbiddenAccessException("دسترسی غیرمجاز برای مشاهده آدرس‌های این سازمان");
+    }
+
+    public async Task<IEnumerable<AddressDto>> GetByBranchIdAsync(long branchId, long currentUserId)
+    {
+        var user = await _context.Persons.Include(p => p.Memberships).FirstOrDefaultAsync(p => p.Id == currentUserId)
+                   ?? throw new NotFoundException("کاربر جاری یافت نشد");
+
+        if (user.IsSuperAdmin() || user.IsAdmin())
+            return await GetBranchAddresses(branchId);
+
+        var orgId = await _context.SubOrganizations.Where(b => b.Id == branchId).Select(b => b.OrganizationId).FirstOrDefaultAsync();
+
+        if (user.Memberships.Any(m => m.OrganizationId == orgId && m.Role == SystemRole.orgadmin))
+            return await GetBranchAddresses(branchId);
+
+        if (user.Memberships.Any(m => m.BranchId == branchId && m.Role == SystemRole.branchadmin))
+            return await GetBranchAddresses(branchId);
+
+        throw new ForbiddenAccessException("دسترسی غیرمجاز برای مشاهده آدرس‌های این شعبه");
+    }
+
+    private async Task<IEnumerable<AddressDto>> GetOrganizationAddresses(long organizationId)
+    {
+        var addresses = await _context.Addresses
+            .Where(a => a.OrganizationId == organizationId && a.BranchId == null)
+            .ToListAsync();
+
+        return addresses.Select(MapToDto);
+    }
+
+    private async Task<IEnumerable<AddressDto>> GetBranchAddresses(long branchId)
+    {
+        var addresses = await _context.Addresses
+            .Where(a => a.BranchId == branchId)
+            .ToListAsync();
+
+        return addresses.Select(MapToDto);
+    }
+
+    private async Task EnsureHasCreateAccessAsync(CreateAddressDto dto, long userId)
+    {
+        var user = await _context.Persons.FindAsync(userId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد");
+
+        if (dto.OrganizationId.HasValue)
         {
-            _logger.LogWarning("کاربر {UserId} مجاز به {Action} آدرس مربوط به شخص {TargetId} نمی‌باشد", currentUserId, action, personId);
-            throw new UnauthorizedAccessException("دسترسی غیرمجاز");
+            var organizationExists = await _context.Organizations
+                .AnyAsync(o => o.Id == dto.OrganizationId);
+
+            if (!organizationExists)
+                throw new NotFoundException("سازمان مورد نظر یافت نشد");
         }
 
-        var targetPerson = await _context.Persons.FindAsync(personId);
-        if (targetPerson == null || !targetPerson.IsActive)
+        if (dto.BranchId.HasValue)
         {
-            _logger.LogWarning("شخص مورد نظر ({TargetId}) معتبر یا فعال نیست.", personId);
-            throw new Exception("کاربر مورد نظر معتبر یا فعال نیست.");
+            var branch = await _context.SubOrganizations
+                .FirstOrDefaultAsync(b => b.Id == dto.BranchId);
+
+            if (branch == null)
+                throw new NotFoundException("شعبه مورد نظر یافت نشد");
+
+            if (dto.OrganizationId.HasValue && branch.OrganizationId != dto.OrganizationId)
+                throw new ForbiddenAccessException("این شعبه متعلق به سازمان انتخاب‌شده نیست");
+        }
+
+        if (dto.PersonId.HasValue)
+        {
+            if (dto.PersonId != userId && !user.IsSuperAdmin())
+                throw new ForbiddenAccessException("فقط خود شخص یا مدیر کل می‌تواند آدرس شخصی تعریف کند");
+        }
+        else if (dto.OrganizationId.HasValue && dto.BranchId.HasValue)
+        {
+            var isBranchAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.PersonId == userId &&
+                m.OrganizationId == dto.OrganizationId &&
+                m.BranchId == dto.BranchId &&
+                m.Role == SystemRole.branchadmin);
+
+            var isOrgAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.PersonId == userId &&
+                m.OrganizationId == dto.OrganizationId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isBranchAdmin && !isOrgAdmin && !user.IsSuperAdmin())
+                throw new ForbiddenAccessException("فقط مدیر سازمان یا مدیر همان شعبه می‌تواند آدرس برای آن تعریف کند");
+        }
+        else if (dto.OrganizationId.HasValue)
+        {
+            var isOrgAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.PersonId == userId &&
+                m.OrganizationId == dto.OrganizationId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isOrgAdmin && !user.IsSuperAdmin())
+                throw new ForbiddenAccessException("فقط orgadmin سازمان می‌تواند آدرس برای آن تعریف کند");
+        }
+        else
+        {
+            throw new AppException("نوع آدرس مشخص نیست (شخصی، سازمان یا شعبه)");
         }
     }
 
-    private static AddressDto MapToDto(Entities.Address a) => new()
+    private async Task EnsureHasEditAccessAsync(Address address, long userId)
+    {
+        var user = await _context.Persons.FindAsync(userId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد");
+
+        if (user.IsSuperAdmin())
+            return;
+
+        if (address.PersonId.HasValue)
+        {
+            if (address.PersonId != userId)
+                throw new ForbiddenAccessException("شما فقط می‌توانید آدرس شخصی خودتان را ویرایش کنید");
+        }
+        else if (address.OrganizationId.HasValue && address.BranchId.HasValue)
+        {
+            var isBranchAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.PersonId == userId &&
+                m.OrganizationId == address.OrganizationId &&
+                m.BranchId == address.BranchId &&
+                m.Role == SystemRole.branchadmin);
+
+            var isOrgAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.PersonId == userId &&
+                m.OrganizationId == address.OrganizationId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isBranchAdmin && !isOrgAdmin)
+                throw new ForbiddenAccessException("فقط مدیر شعبه یا مدیر سازمان می‌تواند آدرس را ویرایش کند");
+        }
+        else if (address.OrganizationId.HasValue)
+        {
+            var isOrgAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.PersonId == userId &&
+                m.OrganizationId == address.OrganizationId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isOrgAdmin)
+                throw new ForbiddenAccessException("فقط مدیر سازمان می‌تواند آدرس‌های سازمان را ویرایش کند");
+        }
+        else
+        {
+            throw new ForbiddenAccessException("نوع آدرس برای ویرایش قابل تشخیص نیست");
+        }
+    }
+
+    private async Task EnsureHasViewAccessAsync(Address address, long userId)
+    {
+        var user = await _context.Persons
+                       .Include(p => p.Memberships)
+                       .FirstOrDefaultAsync(p => p.Id == userId)
+                   ?? throw new NotFoundException("کاربر جاری یافت نشد");
+
+        if (user.IsSuperAdmin() || user.IsAdmin())
+            return;
+
+        if (address.PersonId.HasValue)
+        {
+            if (address.PersonId != userId)
+                throw new ForbiddenAccessException("شما فقط می‌توانید آدرس شخصی خودتان را مشاهده کنید");
+        }
+        else if (address.OrganizationId.HasValue && address.BranchId.HasValue)
+        {
+            var isBranchAdmin = user.Memberships.Any(m =>
+                m.OrganizationId == address.OrganizationId &&
+                m.BranchId == address.BranchId &&
+                m.Role == SystemRole.branchadmin);
+
+            var isOrgAdmin = user.Memberships.Any(m =>
+                m.OrganizationId == address.OrganizationId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!isBranchAdmin && !isOrgAdmin)
+                throw new ForbiddenAccessException("شما به آدرس‌های این شعبه دسترسی ندارید");
+        }
+        else if (address.OrganizationId.HasValue)
+        {
+            var hasBranch = await _context.SubOrganizations.AnyAsync(b => b.OrganizationId == address.OrganizationId);
+
+            var isOrgAdmin = user.Memberships.Any(m =>
+                m.OrganizationId == address.OrganizationId &&
+                m.Role == SystemRole.orgadmin);
+
+            if (!hasBranch && user.Memberships.Any(m => m.OrganizationId == address.OrganizationId))
+                return;
+
+            if (!isOrgAdmin)
+                throw new ForbiddenAccessException("شما به آدرس‌های این سازمان دسترسی ندارید");
+        }
+        else
+        {
+            throw new ForbiddenAccessException("نوع آدرس قابل تشخیص نیست");
+        }
+    }
+
+    private Task<bool> IsSuperadminAsync(long userId)
+    {
+        return _context.Persons.AnyAsync(p => p.Id == userId && p.Role == SystemRole.superadmin);
+    }
+
+    private static AddressDto MapToDto(Address a) => new()
     {
         Id = a.Id,
         Title = a.Title,
@@ -129,6 +396,22 @@ public class AddressService : IAddressService
         PostalCode = a.PostalCode,
         Plate = a.Plate,
         Unit = a.Unit,
-        AdditionalInfo = a.AdditionalInfo
+        AdditionalInfo = a.AdditionalInfo,
+        OrganizationId = a.OrganizationId,
+        BranchId = a.BranchId,
+
     };
+
+    private static void ApplyAddressUpdate(Address address, UpdateAddressDto dto)
+    {
+        address.Title = dto.Title ?? address.Title;
+        address.City = dto.City ?? address.City;
+        address.Province = dto.Province ?? address.Province;
+        address.FullAddress = dto.FullAddress ?? address.FullAddress;
+        address.PostalCode = dto.PostalCode ?? address.PostalCode;
+        address.Plate = dto.Plate ?? address.Plate;
+        address.Unit = dto.Unit ?? address.Unit;
+        address.AdditionalInfo = dto.AdditionalInfo ?? address.AdditionalInfo;
+    }
+
 }

@@ -1,5 +1,6 @@
 ﻿using BarcopoloWebApi.DTOs.Withdrawal;
 using BarcopoloWebApi.Services;
+using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;

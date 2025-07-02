@@ -29,5 +29,12 @@
         public bool IsDriverNetMandatory { get; set; }
 
         public bool IsCargoValueMandatory { get; set; }
+        public decimal IncomePercentage { get; set; }
+        public decimal CommissionPercentage { get; set; }
+        public decimal UnloadingPercentage { get; set; }
+        public decimal DriverPaymentPercentage { get; set; }
+        public decimal PerCargoInsurance { get; set; }
+        public decimal ReceiptIssuingCost { get; set; }
+
     }
 }

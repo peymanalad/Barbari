@@ -1,6 +1,8 @@
 ﻿public class CreateAddressDto
 {
-    public long PersonId { get; set; }
+    public long? PersonId { get; set; }
+    public long? OrganizationId { get; set; }
+    public long? BranchId { get; set; }
 
     public string City { get; set; }
     public string Province { get; set; }

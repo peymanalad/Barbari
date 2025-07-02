@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -11,8 +12,25 @@ namespace BarcopoloWebApi.Entities
         [Required, MaxLength(50)]
         public string SmartCardCode { get; set; }
 
-        [Required, MaxLength(20)]
-        public string PlateNumber { get; set; }
+        [Required, MaxLength(2)]
+        public string PlateIranCode { get; set; } // کد ایران (مثلاً 21)
+
+        [Required, MaxLength(3)]
+        public string PlateThreeDigit { get; set; } // سه رقم (مثلاً 737)
+
+        [Required, MaxLength(1)]
+        public string PlateLetter { get; set; } // حرف (مثلاً "س")
+
+        [Required, MaxLength(2)]
+        public string PlateTwoDigit { get; set; } // دو رقم (مثلاً 44)
+
+        [NotMapped]
+        public string? PlateNumber => $"{PlateThreeDigit} {PlateLetter} {PlateTwoDigit} ایران {PlateIranCode}";
+
+        public string GetFormattedPlateNumber()
+        {
+            return $"{PlateTwoDigit}{PlateLetter}{PlateThreeDigit} ایران {PlateIranCode}";
+        }
 
         [Range(1, 10)]
         public int Axles { get; set; } // تعداد محور

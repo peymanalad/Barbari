@@ -23,9 +23,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Security;
-using BarcopoloWebApi.Services.Address;
+using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Identity;
-using BarcopoloWebApi.Services.Wallet;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -107,7 +106,7 @@ builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IBargirService, BargirService>();
 builder.Services.AddScoped<UserTokenRepository, UserTokenRepository>();
 builder.Services.AddScoped<IWalletService, WalletService>();
-builder.Services.AddScoped<IWithdrawalRequestService, WithdrawalRequestService>();
+builder.Services.AddScoped<IWithdrawalRequestService, WithdrawalRequestService>();  
 builder.Services.AddScoped<IFrequentAddressService, FrequentAddressService>();
 builder.Services.AddScoped<ITokenValidator, TokenValidate>();
 builder.Services.AddHttpContextAccessor();

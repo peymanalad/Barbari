@@ -1,9 +1,9 @@
 ﻿using BarcopoloWebApi.DTOs.Wallet;
 using BarcopoloWebApi.Enums;
-using BarcopoloWebApi.Services.Wallet;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using BarcopoloWebApi.Services.WalletManagement;
 
 namespace BarcopoloWebApi.Controllers
 {

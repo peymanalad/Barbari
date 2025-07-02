@@ -10,7 +10,6 @@ namespace BarcopoloWebApi.DTOs.Driver
         public string IdentificationNumber { get; set; }
         public string LicenseNumber { get; set; }
         public DateTime LicenseExpiryDate { get; set; }
-
         public bool HasViolations { get; set; }
 
         public string FullName { get; set; }

@@ -1,13 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace BarcopoloWebApi.Entities
 {
     public class Driver
     {
+        [Key]
         public long Id { get; set; }
 
         [Required]
+        [ForeignKey(nameof(Person))]
         public long PersonId { get; set; }
 
         [Required, MaxLength(50)]
@@ -20,32 +23,26 @@ namespace BarcopoloWebApi.Entities
         public string LicenseNumber { get; set; }
 
         [MaxLength(50)]
-        public string LicenseIssuePlace { get; set; }
+        public string? LicenseIssuePlace { get; set; }
 
+        [Required]
         public DateTime LicenseIssueDate { get; set; }
 
+        [Required]
         public DateTime LicenseExpiryDate { get; set; }
 
         [MaxLength(30)]
-        public string InsuranceNumber { get; set; }
+        public string? InsuranceNumber { get; set; }
 
         public bool HasViolations { get; set; }
-
 
         [JsonIgnore]
         public virtual Person Person { get; set; }
 
         public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 
+        public bool IsLicenseValid() => LicenseExpiryDate > DateTime.UtcNow;
 
-        public bool IsLicenseValid()
-        {
-            return LicenseExpiryDate > DateTime.UtcNow;
-        }
-
-        public bool HasActiveInsurance()
-        {
-            return !string.IsNullOrEmpty(InsuranceNumber);
-        }
+        public bool HasActiveInsurance() => !string.IsNullOrWhiteSpace(InsuranceNumber);
     }
 }

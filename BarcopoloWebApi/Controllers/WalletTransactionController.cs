@@ -3,7 +3,7 @@ using BarcopoloWebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using BarcopoloWebApi.Services.Wallet;
+using BarcopoloWebApi.Services.WalletManagement;
 
 namespace BarcopoloWebApi.Controllers
 {
