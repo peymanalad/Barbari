@@ -7,6 +7,7 @@ using BarcopoloWebApi.Services.Cargo;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using BarcopoloWebApi.Extensions;
+using BarcopoloWebApi.Exceptions;
 
 public class CargoService : ICargoService
 {
@@ -27,62 +28,61 @@ public class CargoService : ICargoService
             ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
         if (dto.OwnerId != currentUserId && !currentUser.IsAdminOrSuperAdmin())
-            throw new UnauthorizedAccessAppException("اجازه ثبت بار برای دیگران را ندارید.");
+            throw new ForbiddenAccessException("اجازه ثبت بار برای دیگران را ندارید.");
+
         Order? order = null;
-        if (dto.OrderId is not null)
+        if (dto.OrderId.HasValue)
         {
             order = await _context.Orders
-                            .Include(o => o.Organization)
-                            .FirstOrDefaultAsync(o => o.Id == dto.OrderId)
-                        ?? throw new NotFoundException("سفارش یافت نشد.");
+                .Include(o => o.Organization)
+                .FirstOrDefaultAsync(o => o.Id == dto.OrderId.Value)
+                ?? throw new NotFoundException("سفارش یافت نشد.");
 
             await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context);
         }
 
         if (dto.Weight <= 0)
-            throw new ArgumentException("وزن بار باید بیشتر از صفر باشد.");
+            throw new AppException("وزن بار باید بیشتر از صفر باشد.");
 
         if (!dto.NeedsPackaging && dto.PackageCount > 0)
-            throw new ArgumentException("وقتی بسته‌بندی غیرفعال است، تعداد بسته باید صفر باشد.");
+            throw new AppException("وقتی بسته‌بندی غیرفعال است، تعداد بسته باید صفر باشد.");
 
-        var cargoType = await _context.CargoTypes.FirstOrDefaultAsync(ct => ct.Id == dto.CargoTypeId);
-        if (cargoType == null)
-            throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
+        var cargoType = await _context.CargoTypes.FindAsync(dto.CargoTypeId)
+            ?? throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
 
         using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
             var cargo = new Cargo
             {
                 OwnerId = dto.OwnerId,
                 CargoTypeId = dto.CargoTypeId,
-                Title = dto.Title,
-                Contents = dto.Contents ?? "",
+                Title = dto.Title.Trim(),
+                Contents = dto.Contents?.Trim() ?? string.Empty,
+                Value = dto.Value,
                 Weight = dto.Weight,
                 Length = dto.Length,
                 Width = dto.Width,
                 Height = dto.Height,
                 NeedsPackaging = dto.NeedsPackaging,
-                PackagingType = dto.PackagingType ?? "",
+                PackagingType = dto.PackagingType?.Trim() ?? string.Empty,
                 PackageCount = dto.PackageCount,
-                Description = dto.Description ?? "",
-                OrderId = order?.Id
+                Description = dto.Description?.Trim() ?? string.Empty,
+                OrderId = dto.OrderId
             };
 
-            _context.Cargos.Add(cargo);
+            await _context.Cargos.AddAsync(cargo);
             await _context.SaveChangesAsync();
 
             if (dto.Images is { Count: > 0 })
             {
-                var cargoImages = dto.Images
+                var images = dto.Images
                     .Where(url => !string.IsNullOrWhiteSpace(url))
-                    .Select(url => new CargoImage
-                    {
-                        CargoId = cargo.Id,
-                        ImageUrl = url.Trim()
-                    }).ToList();
+                    .Select(url => new CargoImage { CargoId = cargo.Id, ImageUrl = url.Trim() })
+                    .ToList();
 
-                _context.CargoImages.AddRange(cargoImages);
+                await _context.CargoImages.AddRangeAsync(images);
                 await _context.SaveChangesAsync();
             }
 
@@ -104,7 +104,6 @@ public class CargoService : ICargoService
             throw;
         }
     }
-
 
     public async Task<IEnumerable<CargoDto>> GetByOrderIdAsync(long orderId, long currentUserId)
     {
@@ -187,99 +186,96 @@ public class CargoService : ICargoService
     }
 
 
-    public async Task<CargoSummaryDto> UpdateAsync(long id, UpdateCargoDto dto, long currentUserId)
-    {
-        _logger.LogInformation("در حال بروزرسانی بار {CargoId} توسط کاربر {UserId}", id, currentUserId);
+    //public async Task<CargoSummaryDto> UpdateAsync(long id, UpdateCargoDto dto, long currentUserId)
+    //{
+    //    _logger.LogInformation("در حال بروزرسانی بار {CargoId} توسط کاربر {UserId}", id, currentUserId);
 
-        var cargo = await _context.Cargos
-            .Include(c => c.Order)
-            .Include(c => c.CargoType)
-            .Include(c => c.Images)
-            .FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException("بار یافت نشد.");
+    //    var cargo = await _context.Cargos
+    //        .Include(c => c.Order)
+    //        .Include(c => c.CargoType)
+    //        .Include(c => c.Images)
+    //        .FirstOrDefaultAsync(c => c.Id == id)
+    //        ?? throw new NotFoundException("بار یافت نشد.");
 
-        var order = cargo.Order;
+    //    var order = cargo.Order;
+    //    var currentUser = await _context.Persons.FindAsync(currentUserId)
+    //        ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
-        if (order != null && order.Status >= OrderStatus.Assigned)
-            throw new InvalidOperationException("بارهای سفارش تأیید شده قابل ویرایش نیستند.");
+    //    if (order != null && order.Status >= OrderStatus.Assigned)
+    //        throw new AppException("بارهای سفارش تأیید شده قابل ویرایش نیستند.");
 
-        var currentUser = await _context.Persons.FindAsync(currentUserId)
-            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+    //    await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context, cargo.OwnerId);
 
-        await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context, cargo.OwnerId);
+    //    using var transaction = await _context.Database.BeginTransactionAsync();
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+    //    try
+    //    {
+    //        if (dto.CargoTypeId.HasValue)
+    //        {
+    //            var cargoType = await _context.CargoTypes.FindAsync(dto.CargoTypeId.Value)
+    //                ?? throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
+    //            cargo.CargoTypeId = cargoType.Id;
+    //        }
 
-        try
-        {
-            if (dto.CargoTypeId.HasValue)
-            {
-                var cargoType = await _context.CargoTypes
-                    .FirstOrDefaultAsync(ct => ct.Id == dto.CargoTypeId);
-                if (cargoType == null)
-                    throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
+    //        if (dto.NeedsPackaging.HasValue)
+    //        {
+    //            if (!dto.NeedsPackaging.Value && dto.PackageCount.HasValue && dto.PackageCount.Value > 0)
+    //                throw new AppException("وقتی بسته‌بندی غیرفعال است، تعداد بسته باید صفر باشد.");
 
-                cargo.CargoTypeId = cargoType.Id;
-            }
+    //            cargo.NeedsPackaging = dto.NeedsPackaging.Value;
+    //        }
 
-            if (dto.NeedsPackaging.HasValue)
-            {
-                if (!dto.NeedsPackaging.Value && dto.PackageCount.HasValue && dto.PackageCount.Value > 0)
-                    throw new ArgumentException("وقتی بسته‌بندی غیرفعال است، تعداد بسته باید صفر باشد.");
+    //        cargo.Title = dto.Title?.Trim() ?? cargo.Title;
+    //        cargo.Contents = dto.Contents?.Trim() ?? cargo.Contents;
+    //        cargo.Description = dto.Description?.Trim() ?? cargo.Description;
+    //        cargo.Value = dto.Value ?? cargo.Value;
 
-                cargo.NeedsPackaging = dto.NeedsPackaging.Value;
-            }
+    //        if (dto.Weight.HasValue) cargo.Weight = dto.Weight.Value;
+    //        if (dto.Length.HasValue) cargo.Length = dto.Length.Value;
+    //        if (dto.Width.HasValue) cargo.Width = dto.Width.Value;
+    //        if (dto.Height.HasValue) cargo.Height = dto.Height.Value;
+    //        if (!string.IsNullOrWhiteSpace(dto.PackagingType)) cargo.PackagingType = dto.PackagingType.Trim();
+    //        if (dto.PackageCount.HasValue) cargo.PackageCount = dto.PackageCount.Value;
 
-            cargo.Title = dto.Title ?? cargo.Title;
-            cargo.Contents = dto.Contents ?? cargo.Contents;
-            cargo.Description = dto.Description ?? cargo.Description;
+    //        // حذف تصاویر مشخص‌شده برای حذف
+    //        if (dto.RemoveImages is { Count: > 0 })
+    //        {
+    //            var toRemove = cargo.Images
+    //                .Where(img => dto.RemoveImages.Contains(img.ImageUrl))
+    //                .ToList();
 
-            if (dto.Weight.HasValue) cargo.Weight = dto.Weight.Value;
-            if (dto.Length.HasValue) cargo.Length = dto.Length.Value;
-            if (dto.Width.HasValue) cargo.Width = dto.Width.Value;
-            if (dto.Height.HasValue) cargo.Height = dto.Height.Value;
+    //            _context.CargoImages.RemoveRange(toRemove);
+    //        }
 
-            if (!string.IsNullOrWhiteSpace(dto.PackagingType))
-                cargo.PackagingType = dto.PackagingType;
+    //        // افزودن تصاویر جدید
+    //        if (dto.NewImages is { Count: > 0 })
+    //        {
+    //            var toAdd = dto.NewImages
+    //                .Where(url => !string.IsNullOrWhiteSpace(url))
+    //                .Select(url => new CargoImage { CargoId = cargo.Id, ImageUrl = url.Trim() });
 
-            if (dto.PackageCount.HasValue)
-                cargo.PackageCount = dto.PackageCount.Value;
+    //            await _context.CargoImages.AddRangeAsync(toAdd);
+    //        }
 
-            if (dto.Images is { Count: > 0 })
-            {
-                _context.CargoImages.RemoveRange(cargo.Images);
+    //        await _context.SaveChangesAsync();
+    //        await transaction.CommitAsync();
 
-                var newImages = dto.Images
-                    .Where(url => !string.IsNullOrWhiteSpace(url))
-                    .Select(url => new CargoImage
-                    {
-                        CargoId = cargo.Id,
-                        ImageUrl = url.Trim()
-                    });
+    //        _logger.LogInformation("بار {CargoId} با موفقیت بروزرسانی شد", id);
 
-                await _context.CargoImages.AddRangeAsync(newImages);
-            }
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            _logger.LogInformation("بار {CargoId} با موفقیت بروزرسانی شد", id);
-
-            return new CargoSummaryDto
-            {
-                Id = cargo.Id,
-                Title = cargo.Title,
-                CargoTypeName = cargo.CargoType?.Name ?? "نامشخص"
-            };
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "خطا در بروزرسانی بار {CargoId}", id);
-            throw;
-        }
-    }
-
+    //        return new CargoSummaryDto
+    //        {
+    //            Id = cargo.Id,
+    //            Title = cargo.Title,
+    //            CargoTypeName = cargo.CargoType?.Name ?? "نامشخص"
+    //        };
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        await transaction.RollbackAsync();
+    //        _logger.LogError(ex, "خطا در بروزرسانی بار {CargoId}", id);
+    //        throw;
+    //    }
+    //}
 
     public async Task<bool> DeleteAsync(long id, long currentUserId)
     {
@@ -292,7 +288,7 @@ public class CargoService : ICargoService
 
         var order = cargo.Order;
 
-        if (order.Status >= OrderStatus.Assigned)
+        if (order != null && order.Status >= OrderStatus.Assigned)
             throw new InvalidOperationException("پس از تأیید سفارش امکان حذف بار وجود ندارد.");
 
         var currentUser = await _context.Persons.FindAsync(currentUserId)
@@ -303,9 +299,12 @@ public class CargoService : ICargoService
 
         if (!isOwner && !isAdmin)
         {
+            if (order == null)
+                throw new UnauthorizedAccessAppException("شما مجاز به حذف این بار نیستید.");
+
             if (order.BranchId.HasValue)
             {
-                bool isBranchMember = await _context.OrganizationMemberships.AnyAsync(m =>
+                var isBranchMember = await _context.OrganizationMemberships.AnyAsync(m =>
                     m.OrganizationId == order.OrganizationId &&
                     m.BranchId == order.BranchId &&
                     m.PersonId == currentUserId);
@@ -315,7 +314,7 @@ public class CargoService : ICargoService
             }
             else if (order.OrganizationId.HasValue)
             {
-                bool isOrgMember = await _context.OrganizationMemberships.AnyAsync(m =>
+                var isOrgMember = await _context.OrganizationMemberships.AnyAsync(m =>
                     m.OrganizationId == order.OrganizationId &&
                     m.PersonId == currentUserId);
 
@@ -408,6 +407,144 @@ public class CargoService : ICargoService
         };
     }
 
+    public async Task<Dictionary<string, object>> UpdateAsync(long id, UpdateCargoDto dto, long currentUserId)
+    {
+        _logger.LogInformation("در حال بروزرسانی بار {CargoId} توسط کاربر {UserId}", id, currentUserId);
+
+        var cargo = await _context.Cargos
+            .Include(c => c.Order)
+            .Include(c => c.CargoType)
+            .Include(c => c.Images)
+            .FirstOrDefaultAsync(c => c.Id == id)
+            ?? throw new NotFoundException("بار یافت نشد.");
+
+        var order = cargo.Order;
+        var currentUser = await _context.Persons.FindAsync(currentUserId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+
+        if (order != null && order.Status >= OrderStatus.Assigned)
+            throw new AppException("بارهای سفارش تأیید شده قابل ویرایش نیستند.");
+
+        await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context, cargo.OwnerId);
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var changes = new Dictionary<string, object>();
+
+        try
+        {
+            if (dto.CargoTypeId.HasValue && dto.CargoTypeId != cargo.CargoTypeId)
+            {
+                var cargoType = await _context.CargoTypes.FindAsync(dto.CargoTypeId.Value)
+                    ?? throw new NotFoundException("نوع بار وارد شده معتبر نیست.");
+                cargo.CargoTypeId = cargoType.Id;
+                changes["CargoTypeId"] = cargo.CargoTypeId;
+            }
+
+            if (dto.NeedsPackaging.HasValue && dto.NeedsPackaging != cargo.NeedsPackaging)
+            {
+                if (!dto.NeedsPackaging.Value && dto.PackageCount.HasValue && dto.PackageCount.Value > 0)
+                    throw new AppException("وقتی بسته‌بندی غیرفعال است، تعداد بسته باید صفر باشد.");
+
+                cargo.NeedsPackaging = dto.NeedsPackaging.Value;
+                changes["NeedsPackaging"] = cargo.NeedsPackaging;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Title) && dto.Title.Trim() != cargo.Title)
+            {
+                cargo.Title = dto.Title.Trim();
+                changes["Title"] = cargo.Title;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Contents) && dto.Contents.Trim() != cargo.Contents)
+            {
+                cargo.Contents = dto.Contents.Trim();
+                changes["Contents"] = cargo.Contents;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Description) && dto.Description.Trim() != cargo.Description)
+            {
+                cargo.Description = dto.Description.Trim();
+                changes["Description"] = cargo.Description;
+            }
+
+            if (dto.Value.HasValue && dto.Value != cargo.Value)
+            {
+                cargo.Value = dto.Value.Value;
+                changes["Value"] = cargo.Value;
+            }
+
+            if (dto.Weight.HasValue && dto.Weight != cargo.Weight)
+            {
+                cargo.Weight = dto.Weight.Value;
+                changes["Weight"] = cargo.Weight;
+            }
+
+            if (dto.Length.HasValue && dto.Length != cargo.Length)
+            {
+                cargo.Length = dto.Length.Value;
+                changes["Length"] = cargo.Length;
+            }
+
+            if (dto.Width.HasValue && dto.Width != cargo.Width)
+            {
+                cargo.Width = dto.Width.Value;
+                changes["Width"] = cargo.Width;
+            }
+
+            if (dto.Height.HasValue && dto.Height != cargo.Height)
+            {
+                cargo.Height = dto.Height.Value;
+                changes["Height"] = cargo.Height;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.PackagingType) && dto.PackagingType.Trim() != cargo.PackagingType)
+            {
+                cargo.PackagingType = dto.PackagingType.Trim();
+                changes["PackagingType"] = cargo.PackagingType;
+            }
+
+            if (dto.PackageCount.HasValue && dto.PackageCount != cargo.PackageCount)
+            {
+                cargo.PackageCount = dto.PackageCount.Value;
+                changes["PackageCount"] = cargo.PackageCount;
+            }
+
+            if (dto.RemoveImages is { Count: > 0 })
+            {
+                var toRemove = cargo.Images
+                    .Where(img => dto.RemoveImages.Contains(img.ImageUrl))
+                    .ToList();
+
+                _context.CargoImages.RemoveRange(toRemove);
+                changes["RemovedImages"] = toRemove.Select(x => x.ImageUrl).ToList();
+            }
+
+            if (dto.NewImages is { Count: > 0 })
+            {
+                var toAdd = dto.NewImages
+                    .Where(url => !string.IsNullOrWhiteSpace(url))
+                    .Select(url => new CargoImage { CargoId = cargo.Id, ImageUrl = url.Trim() })
+                    .ToList();
+
+                await _context.CargoImages.AddRangeAsync(toAdd);
+                changes["AddedImages"] = toAdd.Select(x => x.ImageUrl).ToList();
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("بار {CargoId} با موفقیت بروزرسانی شد", id);
+
+            return changes;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "خطا در بروزرسانی بار {CargoId}", id);
+            throw;
+        }
+    }
 
 
 

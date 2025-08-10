@@ -59,6 +59,21 @@ namespace BarcopoloWebApi.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(long id)
+        {
+            try
+            {
+                var feedback = await _feedbackService.GetByIdAsync(id, CurrentUserId);
+                return Ok(feedback);
+            }
+            catch (Exception ex)
+            {
+                return HandleError(ex, "Error retrieving feedback", new { id });
+            }
+        }
+
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateFeedbackDto dto)
         {

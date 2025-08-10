@@ -4,3 +4,10 @@ GET {{BarcopoloWebApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{BarcopoloWebApi_HostAddress}}/api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}

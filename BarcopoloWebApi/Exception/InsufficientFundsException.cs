@@ -1,4 +1,7 @@
-﻿public class InsufficientFundsException : Exception
+﻿namespace BarcopoloWebApi.Exceptions
 {
-    public InsufficientFundsException(string message) : base(message) { }
+    public class InsufficientFundsException : Exception
+    {
+        public InsufficientFundsException(string message) : base(message) { }
+    }
 }

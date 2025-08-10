@@ -9,7 +9,7 @@ namespace BarcopoloWebApi.Services
         Task AssignVehicleToWarehouse(long warehouseId, long vehicleId, long currentUserId);
         Task<bool> RemoveVehicleFromWarehouse(long warehouseId, long vehicleId, long currentUserId);
         Task<IEnumerable<VehicleDto>> GetVehiclesByWarehouse(long warehouseId, long currentUserId);
-        Task<IEnumerable<VehicleDto>> GetUnassignedVehicles(long currentUserId);
+        Task<PagedResult<VehicleDto>> GetUnassignedVehicles(long currentUserId, int page = 1, int pageSize = 20);
 
     }
 }

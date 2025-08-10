@@ -119,5 +119,22 @@ namespace BarcopoloWebApi.Controllers
             }
         }
 
+        [HttpPost("check-existence")]
+        public async Task<IActionResult> CheckExistenceByNationalCodeAsync([FromBody] PersonExistenceRequestDto dto)
+        {
+            try
+            {
+                var result = await _personService.CheckExistenceByNationalCodeAsync(dto, CurrentUserId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return HandleError(ex, "خطا در بررسی وجود شخص");
+            }
+        }
+
+        
+
+
     }
 }

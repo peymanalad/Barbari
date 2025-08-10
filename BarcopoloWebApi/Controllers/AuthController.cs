@@ -24,7 +24,7 @@ namespace BarcopoloWebApi.Controllers
         private IActionResult HandleError(Exception ex, string message)
         {
             _logger.LogError(ex, message);
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { error = "An error occurred" });
         }
 
         [HttpPost("register")]
@@ -57,16 +57,19 @@ namespace BarcopoloWebApi.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public IActionResult RefreshToken([FromBody] string refreshToken)
+        public IActionResult RefreshToken([FromBody] RefreshTokenDto dto)
         {
             _logger.LogInformation("Refresh token attempt");
 
-            var userToken = _tokenRepo.FindRefreshToken(refreshToken);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userToken = _tokenRepo.FindRefreshToken(dto.RefreshToken);
             if (userToken == null || userToken.RefreshTokenExp < DateTime.UtcNow)
                 return Unauthorized(new { error = "توکن نامعتبر یا منقضی شده است" });
 
-            _tokenRepo.DeleteToken(refreshToken);
-            var token = _authService.CreateToken(userToken.PersonId);
+            _tokenRepo.DeleteToken(dto.RefreshToken);
+            var token = await _authService.CreateToken(userToken.PersonId);
 
             return Ok(token);
         }

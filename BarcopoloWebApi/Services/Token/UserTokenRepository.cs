@@ -14,34 +14,35 @@ namespace BarcopoloWebApi.Services.Token
             _context = context;
         }
 
-        public void SaveToken(UserToken token)
+        public async Task SaveTokenAsync(UserToken token)
         {
             _context.Tokens.Add(token);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
         }
 
-        public UserToken? FindRefreshToken(string refreshToken)
+        public async Task<UserToken?> FindRefreshTokenAsync(string refreshToken) 
         {
             var hashed = SecurityHelper.GetSha256Hash(refreshToken);
-            return _context.Tokens
+            return await _context.Tokens
                 .Include(t => t.Person)
-                .SingleOrDefault(t => t.RefreshTokenHash == hashed);
+                .SingleOrDefaultAsync(t => t.RefreshTokenHash == hashed)
+                .ConfigureAwait(false);
         }
 
-        public void DeleteToken(string refreshToken)
+        public async Task DeleteTokenAsync(string refreshToken)
         {
-            var token = FindRefreshToken(refreshToken);
+            var token = await FindRefreshTokenAsync(refreshToken).ConfigureAwait(false);
             if (token != null)
             {
                 _context.Tokens.Remove(token);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync().ConfigureAwait(false);
             }
         }
 
-        public bool CheckExistToken(string jwtToken)
+        public async Task<bool> CheckExistTokenAsync(string jwtToken)
         {
             var hashed = SecurityHelper.GetSha256Hash(jwtToken);
-            return _context.Tokens.Any(t => t.TokenHash == hashed);
+            return await _context.Tokens.AnyAsync(t => t.TokenHash == hashed).ConfigureAwait(false);
         }
     }
 }

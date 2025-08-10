@@ -56,7 +56,7 @@ public class AddressService : IAddressService
 
     public async Task<IEnumerable<AddressDto>> GetByPersonIdAsync(long personId, long currentUserId)
     {
-        if (personId != currentUserId && !await IsSuperadminAsync(currentUserId))
+        if (personId != currentUserId && !await IsSuperadminOrAdminAsync(currentUserId))
             throw new ForbiddenAccessException("شما فقط می‌توانید آدرس‌های خودتان را مشاهده کنید");
 
         var addresses = await _context.Addresses
@@ -229,6 +229,8 @@ public class AddressService : IAddressService
         var user = await _context.Persons.FindAsync(userId)
             ?? throw new NotFoundException("کاربر جاری یافت نشد");
 
+        var isAdminOrSuperadmin = user.IsAdminOrSuperAdmin(); // فرض بر این که این متد تعریف شده
+
         if (dto.OrganizationId.HasValue)
         {
             var organizationExists = await _context.Organizations
@@ -252,11 +254,16 @@ public class AddressService : IAddressService
 
         if (dto.PersonId.HasValue)
         {
-            if (dto.PersonId != userId && !user.IsSuperAdmin())
-                throw new ForbiddenAccessException("فقط خود شخص یا مدیر کل می‌تواند آدرس شخصی تعریف کند");
+            // دسترسی شخصی: فقط خود شخص یا admin/superadmin
+            if (dto.PersonId != userId && !isAdminOrSuperadmin)
+                throw new ForbiddenAccessException("فقط خود شخص یا مدیر کل/مدیر می‌تواند آدرس شخصی تعریف کند");
+
+            return;
         }
-        else if (dto.OrganizationId.HasValue && dto.BranchId.HasValue)
+
+        if (dto.OrganizationId.HasValue && dto.BranchId.HasValue)
         {
+            // برای آدرس شعبه: branchadmin همان شعبه یا orgadmin سازمان یا admin/superadmin
             var isBranchAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
                 m.PersonId == userId &&
                 m.OrganizationId == dto.OrganizationId &&
@@ -268,24 +275,29 @@ public class AddressService : IAddressService
                 m.OrganizationId == dto.OrganizationId &&
                 m.Role == SystemRole.orgadmin);
 
-            if (!isBranchAdmin && !isOrgAdmin && !user.IsSuperAdmin())
-                throw new ForbiddenAccessException("فقط مدیر سازمان یا مدیر همان شعبه می‌تواند آدرس برای آن تعریف کند");
+            if (!isBranchAdmin && !isOrgAdmin && !isAdminOrSuperadmin)
+                throw new ForbiddenAccessException("فقط مدیر سازمان یا مدیر همان شعبه یا مدیر کل می‌تواند آدرس برای آن تعریف کند");
+
+            return;
         }
-        else if (dto.OrganizationId.HasValue)
+
+        if (dto.OrganizationId.HasValue)
         {
+            // برای آدرس خود سازمان: فقط orgadmin آن سازمان یا admin/superadmin
             var isOrgAdmin = await _context.OrganizationMemberships.AnyAsync(m =>
                 m.PersonId == userId &&
                 m.OrganizationId == dto.OrganizationId &&
                 m.Role == SystemRole.orgadmin);
 
-            if (!isOrgAdmin && !user.IsSuperAdmin())
-                throw new ForbiddenAccessException("فقط orgadmin سازمان می‌تواند آدرس برای آن تعریف کند");
+            if (!isOrgAdmin && !isAdminOrSuperadmin)
+                throw new ForbiddenAccessException("فقط مدیر سازمان یا مدیر کل می‌تواند آدرس سازمان تعریف کند");
+
+            return;
         }
-        else
-        {
-            throw new AppException("نوع آدرس مشخص نیست (شخصی، سازمان یا شعبه)");
-        }
+
+        throw new AppException("نوع آدرس مشخص نیست (شخصی، سازمان یا شعبه)");
     }
+
 
     private async Task EnsureHasEditAccessAsync(Address address, long userId)
     {
@@ -381,9 +393,9 @@ public class AddressService : IAddressService
         }
     }
 
-    private Task<bool> IsSuperadminAsync(long userId)
+    private Task<bool> IsSuperadminOrAdminAsync(long userId)
     {
-        return _context.Persons.AnyAsync(p => p.Id == userId && p.Role == SystemRole.superadmin);
+        return _context.Persons.AnyAsync(p => p.Id == userId || p.Role == SystemRole.superadmin || p.Role == SystemRole.admin);
     }
 
     private static AddressDto MapToDto(Address a) => new()

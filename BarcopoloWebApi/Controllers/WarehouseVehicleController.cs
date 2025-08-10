@@ -75,5 +75,21 @@ namespace BarcopoloWebApi.Controllers
                 return HandleError(ex, "Error retrieving vehicles in warehouse");
             }
         }
+
+        [HttpGet("unassigned")]
+        public async Task<IActionResult> GetUnassignedVehicles([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var vehicles = await _warehouseVehicleService.GetUnassignedVehicles(CurrentUserId,page,pageSize);
+                return Ok(vehicles);
+            }
+            catch (Exception ex)
+            {
+                return HandleError(ex, "Error retrieving unassigned vehicles");
+            }
+        }
+
+
     }
 }

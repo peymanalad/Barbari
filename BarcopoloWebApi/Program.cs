@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
+using System.Xml.Xsl;
 using BarcopoloWebApi.Services.Cargo;
 using BarcopoloWebApi.Services.CargoType;
 using BarcopoloWebApi.Services.Order;
@@ -25,6 +26,7 @@ using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Security;
 using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Identity;
+using AutoMapper;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -85,6 +87,23 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<DataBaseContext>(options =>
     options.UseSqlServer(connectionString));
 
+var loggerFactory = LoggerFactory.Create(logging =>
+{
+    logging.AddConsole(); // or any other provider
+});
+var mapperConfig = new MapperConfiguration(cfg =>
+{
+    cfg.AddProfile<OrderProfile>();
+    cfg.AddProfile<CargoProfile>();
+    cfg.AddProfile<AddressProfile>();
+    cfg.AddProfile<WarehouseProfile>(); 
+    cfg.AddProfile<OrderEventProfile>();
+    cfg.AddProfile<OrganizationProfile>();
+    cfg.AddProfile<PaymentProfile>();
+    cfg.AddProfile<VehicleProfile>();
+},loggerFactory);
+var mapper = mapperConfig.CreateMapper();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPersonService, PersonService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
@@ -103,12 +122,14 @@ builder.Services.AddScoped<IOrderWarehouseAssignmentService, OrderWarehouseAssig
 builder.Services.AddScoped<IDriverService, DriverService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IWarehouseVehicleService,WarehouseVehicleService>();
 builder.Services.AddScoped<IBargirService, BargirService>();
 builder.Services.AddScoped<UserTokenRepository, UserTokenRepository>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IWithdrawalRequestService, WithdrawalRequestService>();  
 builder.Services.AddScoped<IFrequentAddressService, FrequentAddressService>();
 builder.Services.AddScoped<ITokenValidator, TokenValidate>();
+builder.Services.AddSingleton(mapper);
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IPasswordHasher<Person>, PasswordHasher<Person>>();

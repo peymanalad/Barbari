@@ -12,5 +12,10 @@ namespace BarcopoloWebApi.Services.Person
         Task<PersonDto> GetByIdAsync(long id, long currentUserId);
         Task<BarcopoloWebApi.Entities.Person> GetEntityByIdAsync(long id);
         Task<IEnumerable<PersonDto>> GetAllAsync(long currentUserId);
+        Task<long> FindPersonByNationalCodeAsync(string? nationalCode);
+        Task<bool> CheckExistenceByNationalCodeAsync(PersonExistenceRequestDto dto, long currentUserId);
+
+
+
     }
 }

@@ -43,7 +43,11 @@ namespace BarcopoloWebApi.Tests
                 Id = id,
                 City = "City",
                 Province = "Province",
-                FullAddress = "Address"
+                FullAddress = "Address",
+                Plate = "25",
+                Unit = "11",
+                PostalCode = "123456789",
+                Title = "Home"
             };
         }
 
@@ -87,7 +91,7 @@ namespace BarcopoloWebApi.Tests
             using var context = CreateContext();
             context.Persons.Add(CreateAdmin());
             context.Addresses.Add(CreateAddress());
-            var warehouse = new Warehouse { AddressId = 1, WarehouseName = "Main" };
+            var warehouse = new Warehouse { AddressId = 1, WarehouseName = "Main", InternalTelephone = "123" ,PrintText = "warehouse"};
             context.Warehouses.Add(warehouse);
             await context.SaveChangesAsync();
 
@@ -105,7 +109,7 @@ namespace BarcopoloWebApi.Tests
             using var context = CreateContext();
             context.Persons.Add(CreateAdmin());
             context.Addresses.Add(CreateAddress());
-            var warehouse = new Warehouse { AddressId = 1, WarehouseName = "Main" };
+            var warehouse = new Warehouse { AddressId = 1, WarehouseName = "Main",InternalTelephone = "123", PrintText = "warehouse"};
             context.Warehouses.Add(warehouse);
             await context.SaveChangesAsync();
 
@@ -124,7 +128,7 @@ namespace BarcopoloWebApi.Tests
             using var context = CreateContext();
             context.Persons.Add(CreateAdmin());
             context.Addresses.Add(CreateAddress());
-            var warehouse = new Warehouse { AddressId = 1, WarehouseName = "Main" };
+            var warehouse = new Warehouse { AddressId = 1, WarehouseName = "Main", InternalTelephone = "123", PrintText = "warehouse" };
             context.Warehouses.Add(warehouse);
             await context.SaveChangesAsync();
 

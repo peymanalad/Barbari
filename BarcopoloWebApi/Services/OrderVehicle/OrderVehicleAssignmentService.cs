@@ -3,6 +3,8 @@ using BarcopoloWebApi.DTOs.Vehicle;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 
 namespace BarcopoloWebApi.Services
 {
@@ -10,98 +12,99 @@ namespace BarcopoloWebApi.Services
     {
         private readonly DataBaseContext _context;
         private readonly ILogger<OrderVehicleAssignmentService> _logger;
+        private readonly IMapper _mapper;
 
-        public OrderVehicleAssignmentService(DataBaseContext context, ILogger<OrderVehicleAssignmentService> logger)
+        public OrderVehicleAssignmentService(
+            DataBaseContext context,
+            ILogger<OrderVehicleAssignmentService> logger,
+            IMapper mapper)
         {
             _context = context;
             _logger = logger;
+            _mapper = mapper;
         }
 
         public async Task AssignAsync(long orderId, long vehicleId, long currentUserId)
         {
-            var user = await _context.Persons.FindAsync(currentUserId);
-            if (user == null || !IsAdmin(user.Role.ToString().ToLower()))
+            var user = await _context.Persons.FindAsync(currentUserId)
+                ?? throw new NotFoundException("کاربر یافت نشد.");
+
+            if (!user.IsAdminOrSuperAdminOrMonitor())
             {
-                _logger.LogWarning("User {UserId} is not authorized to assign vehicles.", currentUserId);
-                throw new ForbiddenAccessException("شما اجازه اختصاص وسیله نقلیه را ندارید.");
+                _logger.LogWarning("کاربر {UserId} مجاز به اختصاص وسیله نقلیه نیست.", currentUserId);
+                throw new ForbiddenAccessException("دسترسی غیرمجاز.");
             }
 
-            _logger.LogInformation("Assigning vehicle {VehicleId} to order {OrderId}", vehicleId, orderId);
+            var order = await _context.Orders.FindAsync(orderId)
+                ?? throw new NotFoundException("سفارش یافت نشد.");
+            var vehicle = await _context.Vehicles.FindAsync(vehicleId)
+                ?? throw new NotFoundException("وسیله نقلیه یافت نشد.");
 
-            var order = await _context.Orders.FindAsync(orderId) ?? throw new NotFoundException("سفارش یافت نشد");
-            var vehicle = await _context.Vehicles.FindAsync(vehicleId) ?? throw new NotFoundException("وسیله نقلیه یافت نشد");
+            var exists = await _context.OrderVehicles
+                .AnyAsync(x => x.OrderId == orderId && x.VehicleId == vehicleId);
 
-            var exists = await _context.OrderVehicles.AnyAsync(x => x.OrderId == orderId && x.VehicleId == vehicleId);
             if (exists)
             {
-                _logger.LogWarning("Vehicle {VehicleId} already assigned to order {OrderId}", vehicleId, orderId);
+                _logger.LogWarning("وسیله نقلیه {VehicleId} قبلاً به سفارش {OrderId} اختصاص داده شده است.", vehicleId, orderId);
                 return;
             }
 
-            var assignment = new OrderVehicle { OrderId = orderId, VehicleId = vehicleId };
-            _context.OrderVehicles.Add(assignment);
+            _context.OrderVehicles.Add(new OrderVehicle
+            {
+                OrderId = orderId,
+                VehicleId = vehicleId
+            });
+
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Vehicle {VehicleId} assigned to order {OrderId} successfully", vehicleId, orderId);
+            _logger.LogInformation("وسیله نقلیه {VehicleId} با موفقیت به سفارش {OrderId} اختصاص داده شد.", vehicleId, orderId);
         }
 
         public async Task<bool> RemoveAsync(long orderId, long vehicleId, long currentUserId)
         {
-            var user = await _context.Persons.FindAsync(currentUserId);
-            if (user == null || !IsAdmin(user.Role.ToString().ToLower()))
-            {
-                _logger.LogWarning("User {UserId} is not authorized to remove vehicle assignments.", currentUserId);
-                throw new ForbiddenAccessException("شما اجازه حذف وسیله نقلیه را ندارید.");
-            }
+            var user = await _context.Persons.FindAsync(currentUserId)
+                ?? throw new NotFoundException("کاربر یافت نشد.");
 
-            _logger.LogInformation("Removing vehicle {VehicleId} from order {OrderId}", vehicleId, orderId);
+            if (!user.IsAdminOrSuperAdminOrMonitor())
+            {
+                _logger.LogWarning("کاربر {UserId} مجاز به حذف وسیله نقلیه نیست.", currentUserId);
+                throw new ForbiddenAccessException("دسترسی غیرمجاز.");
+            }
 
             var assignment = await _context.OrderVehicles
                 .FirstOrDefaultAsync(x => x.OrderId == orderId && x.VehicleId == vehicleId);
 
             if (assignment == null)
             {
-                _logger.LogWarning("Assignment not found for order {OrderId} and vehicle {VehicleId}", orderId, vehicleId);
+                _logger.LogWarning("رابطه‌ای برای حذف یافت نشد: OrderId = {OrderId}, VehicleId = {VehicleId}", orderId, vehicleId);
                 return false;
             }
 
             _context.OrderVehicles.Remove(assignment);
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Vehicle {VehicleId} removed from order {OrderId}", vehicleId, orderId);
+
+            _logger.LogInformation("رابطه وسیله نقلیه {VehicleId} با سفارش {OrderId} با موفقیت حذف شد.", vehicleId, orderId);
             return true;
         }
 
         public async Task<IEnumerable<VehicleDto>> GetByOrderIdAsync(long orderId, long currentUserId)
         {
-            _logger.LogInformation("User {UserId} retrieving vehicles for order {OrderId}", currentUserId, orderId);
+            var orderExists = await _context.Orders.AnyAsync(x => x.Id == orderId);
+            if (!orderExists)
+                throw new NotFoundException("سفارش یافت نشد.");
 
             var vehicles = await _context.OrderVehicles
                 .Where(x => x.OrderId == orderId)
                 .Include(x => x.Vehicle)
                 .ThenInclude(v => v.Driver)
-                .Select(x => new VehicleDto
-                {
-                    Id = x.Vehicle.Id,
-                    PlateNumber = x.Vehicle.PlateNumber,
-                    Model = x.Vehicle.Model,
-                    Color = x.Vehicle.Color,
-                    SmartCardCode = x.Vehicle.SmartCardCode,
-                    Axles = x.Vehicle.Axles,
-                    Engine = x.Vehicle.Engine,
-                    Chassis = x.Vehicle.Chassis,
-                    IsBroken = x.Vehicle.IsBroken,
-                    IsVan = x.Vehicle.IsVan,
-                    VanCommission = x.Vehicle.VanCommission,
-                    DriverId = x.Vehicle.DriverId,
-                    DriverFullName = x.Vehicle.Driver != null
-                        ? x.Vehicle.Driver.Person.GetFullName()
-                        : null
-                })
+                .ThenInclude(d => d.Person)
+                .Select(x => x.Vehicle)
+                .ProjectTo<VehicleDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
+
+            _logger.LogInformation("تعداد {Count} وسیله نقلیه برای سفارش {OrderId} توسط کاربر {UserId} بازیابی شد.", vehicles.Count, orderId, currentUserId);
 
             return vehicles;
         }
 
-        private bool IsAdmin(string? role) =>
-            role?.ToLower() is "admin" or "superadmin";
     }
 }

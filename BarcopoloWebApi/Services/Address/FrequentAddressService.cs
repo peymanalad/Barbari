@@ -1,5 +1,6 @@
 ﻿using BarcopoloWebApi.Data;
 using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 public class FrequentAddressService : IFrequentAddressService
@@ -59,6 +60,58 @@ public class FrequentAddressService : IFrequentAddressService
         return GetFrequentAddressesAsync(currentUserId, scope, FrequentAddressType.Origin);
     }
 
+    public async Task<List<FrequentAddressDto>> GetFrequentAddressesAsync(
+        long currentUserId,
+        FrequentAddressType type,
+        bool isForOrganization,
+        long? organizationId = null,
+        long? branchId = null)
+    {
+        if (!Enum.IsDefined(typeof(FrequentAddressType), type))
+            throw new AppException("نوع آدرس نامعتبر است.");
+
+        IQueryable<FrequentAddress> query = _context.FrequentAddresses
+            .Where(f => f.AddressType == type);
+
+        if (isForOrganization)
+        {
+            if (organizationId == null)
+                throw new AppException("شناسه سازمان اجباری است.");
+
+            query = query.Where(f =>
+                f.OrganizationId == organizationId &&
+                f.BranchId == branchId); // اگر branchId == null یعنی آدرس سازمانی کلی
+        }
+        else
+        {
+            query = query.Where(f => f.PersonId == currentUserId);
+        }
+
+        var result = await query
+            .OrderByDescending(f => f.UsageCount)
+            .ThenByDescending(f => f.LastUsed)
+            .ToListAsync();
+
+        return result.Select(f => new FrequentAddressDto
+        {
+            Id = f.Id,
+            Title = f.Title,
+            FullAddress = f.FullAddress,
+            City = f.City,
+            Province = f.Province,
+            PostalCode = f.PostalCode,
+            Plate = f.Plate,
+            Unit = f.Unit,
+            UsageCount = f.UsageCount,
+            LastUsed = f.LastUsed,
+            AddressType = f.AddressType.ToString(),
+            PersonId = f.PersonId,
+            OrganizationId = f.OrganizationId,
+            BranchId = f.BranchId
+        }).ToList();
+    }
+
+
     private async Task<List<FrequentAddressDto>> GetFrequentAddressesAsync(long currentUserId, FrequentAddressScope scope, FrequentAddressType type)
     {
         IQueryable<FrequentAddress> query = _context.FrequentAddresses
@@ -100,6 +153,6 @@ public class FrequentAddressService : IFrequentAddressService
         FullAddress = entity.FullAddress,
         City = entity.City,
         Province = entity.Province,
-        AddressType = entity.AddressType
+        //AddressType = entity.AddressType
     };
 }

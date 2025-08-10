@@ -4,6 +4,7 @@ using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.Services.Person;
+using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,12 +16,15 @@ namespace BarcopoloWebApi.Services
         private readonly DataBaseContext _context;
         private readonly ILogger<PersonService> _logger;
         private readonly IPasswordHasher<Entities.Person> _passwordHasher;
+        private readonly IWalletService _walletService;
 
-        public PersonService(DataBaseContext context, ILogger<PersonService> logger, IPasswordHasher<Entities.Person> passwordHasher)
+        public PersonService(DataBaseContext context, ILogger<PersonService> logger, IPasswordHasher<Entities.Person> passwordHasher,
+            IWalletService walletService)
         {
             _context = context;
             _logger = logger;
             _passwordHasher = passwordHasher;
+            _walletService = walletService;
         }
 
         public async Task<BarcopoloWebApi.Entities.Person> GetEntityByIdAsync(long id)
@@ -69,11 +73,13 @@ namespace BarcopoloWebApi.Services
                 IsActive = true
             };
 
-            var rawPassword = string.IsNullOrWhiteSpace(dto.Password) ? dto.PhoneNumber : dto.Password;
+            var rawPassword = string.IsNullOrWhiteSpace(dto.Password) ? dto.NationalCode : dto.Password;
             person.PasswordHash = _passwordHasher.HashPassword(person, rawPassword);
 
             _context.Persons.Add(person);
             await _context.SaveChangesAsync();
+
+            await _walletService.CreateWalletForPersonAsync(person.Id);
 
             _logger.LogInformation("Person created with Id {Id}", person.Id);
             return MapToDto(person);
@@ -182,6 +188,45 @@ namespace BarcopoloWebApi.Services
             _logger.LogInformation("Person with Id {Id} activated by {UserId}", id, currentUserId);
             return true;
         }
+
+        public async Task<long> FindPersonByNationalCodeAsync(string? nationalCode)
+        {
+            if (string.IsNullOrWhiteSpace(nationalCode))
+                return 0;
+
+            var personId = await _context.Persons
+                .Where(p => p.NationalCode == nationalCode)
+                .Select(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            return personId;
+        }
+
+        public async Task<bool> CheckExistenceByNationalCodeAsync(PersonExistenceRequestDto dto, long currentUserId)
+        {
+            var currentUser = await _context.Persons.FindAsync(currentUserId)
+                              ?? throw new ForbiddenAccessException("کاربر جاری یافت نشد");
+
+            var isSuperadmin = currentUser.IsSuperAdmin();
+            var isAdmin = currentUser.IsAdmin();
+
+            var isOrgOrBranchAdmin = await _context.OrganizationMemberships
+                .AnyAsync(m => m.PersonId == currentUserId &&
+                               (m.Role == SystemRole.orgadmin || m.Role == SystemRole.branchadmin));
+
+            if (!isSuperadmin && !isAdmin && !isOrgOrBranchAdmin)
+                throw new ForbiddenAccessException("شما اجازه دسترسی به این عملیات را ندارید.");
+
+            if (string.IsNullOrWhiteSpace(dto.NationalCode))
+                throw new AppException("کد ملی وارد نشده است.");
+
+            var exists = await _context.Persons
+                .AnyAsync(p => p.NationalCode == dto.NationalCode);
+
+            return exists;
+        }
+
+
 
 
         private static PersonDto MapToDto(Entities.Person p) => new PersonDto

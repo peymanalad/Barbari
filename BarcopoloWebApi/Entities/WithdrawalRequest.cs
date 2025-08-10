@@ -18,6 +18,7 @@ namespace BarcopoloWebApi.Entities
         public long RequesterPersonId { get; set; }
 
         public long? ReviewedByAdminId { get; set; }
+        public string DestinationBankAccount { get; set; }
 
         [Required]
         public WithdrawalRequestStatus Status { get; set; } = WithdrawalRequestStatus.Pending;

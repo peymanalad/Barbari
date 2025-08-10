@@ -104,11 +104,11 @@ namespace BarcopoloWebApi.Controllers
         }
 
         [HttpPost("search")]
-        public async Task<IActionResult> Search([FromBody] CargoSearchDto filter)
+        public async Task<IActionResult> SearchCargos([FromQuery] CargoSearchDto input)
         {
             try
             {
-                var result = await _cargoService.SearchAsync(filter, CurrentUserId);
+                var result = await _cargoService.SearchAsync(input, CurrentUserId);
                 return Ok(result);
             }
             catch (Exception ex)

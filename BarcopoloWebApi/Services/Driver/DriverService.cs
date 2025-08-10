@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.Driver;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
@@ -13,11 +14,14 @@ public class DriverService : IDriverService
 {
     private readonly DataBaseContext _context;
     private readonly ILogger<DriverService> _logger;
+    private readonly IPasswordHasher<Entities.Person> _passwordHasher;
 
-    public DriverService(DataBaseContext context, ILogger<DriverService> logger)
+
+    public DriverService(DataBaseContext context, ILogger<DriverService> logger , IPasswordHasher<Entities.Person> passwordHasher)
     {
         _context = context;
         _logger = logger;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<DriverDto> CreateAsync(CreateDriverDto dto, long currentUserId)
@@ -27,7 +31,40 @@ public class DriverService : IDriverService
 
         bool isAdmin = currentUser.IsAdminOrSuperAdmin();
 
-        // اگر PersonId داده شده
+        var duplicateErrors = new List<string>();
+        if (!string.IsNullOrWhiteSpace(dto.SmartCardCode))
+        {
+            bool exists = await _context.Drivers.AnyAsync(d => d.SmartCardCode == dto.SmartCardCode);
+            if (exists) duplicateErrors.Add("کد هوشمند وارد شده قبلاً استفاده شده است.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.IdentificationNumber))
+        {
+            bool exists = await _context.Drivers.AnyAsync(d => d.IdentificationNumber == dto.IdentificationNumber);
+            if (exists) duplicateErrors.Add("شماره شناسنامه وارد شده قبلاً استفاده شده است.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.LicenseNumber))
+        {
+            bool exists = await _context.Drivers.AnyAsync(d => d.LicenseNumber == dto.LicenseNumber);
+            if (exists) duplicateErrors.Add("شماره گواهینامه وارد شده قبلاً استفاده شده است.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.NationalCode))
+        {
+            bool exists = await _context.Persons.AnyAsync(p => p.NationalCode == dto.NationalCode);
+            if (exists) duplicateErrors.Add("کد ملی وارد شده قبلاً در سیستم وجود دارد.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+        {
+            bool exists = await _context.Persons.AnyAsync(p => p.PhoneNumber == dto.PhoneNumber);
+            if (exists) duplicateErrors.Add("شماره موبایل وارد شده قبلاً در سیستم وجود دارد.");
+        }
+
+        if (duplicateErrors.Any())
+            throw new AppException("خطاهای تکراری:\n" + string.Join("\n", duplicateErrors));
+
         if (dto.PersonId.HasValue)
         {
             if (!isAdmin)
@@ -67,14 +104,16 @@ public class DriverService : IDriverService
                     NationalCode = dto.NationalCode,
                     PhoneNumber = dto.PhoneNumber,
                     Role = SystemRole.user,
-                    PasswordHash = Guid.NewGuid().ToString("N"), // موقت
                     IsActive = true
                 };
+
+                person.PasswordHash = _passwordHasher.HashPassword(person, dto.NationalCode);
 
                 _context.Persons.Add(person);
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("شخص جدید برای راننده ساخته شد: {PersonId}", person.Id);
             }
+
             else
             {
                 _logger.LogInformation("شخص با کد ملی و شماره موبایل موجود بود: {PersonId}", person.Id);
@@ -107,9 +146,46 @@ public class DriverService : IDriverService
         if (!isAdmin && !isOwner)
             throw new ForbiddenAccessException("شما مجاز به ویرایش این راننده نیستید.");
 
-        // جلوگیری از تغییر کدملی و شماره تلفن توسط راننده خودش
         if (!isAdmin && (dto.NationalCode != null || dto.PhoneNumber != null))
             throw new ForbiddenAccessException("شما مجاز به تغییر کد ملی یا شماره تماس نیستید.");
+
+        var duplicateErrors = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(dto.SmartCardCode) && dto.SmartCardCode != driver.SmartCardCode)
+        {
+            bool exists = await _context.Drivers.AnyAsync(d => d.SmartCardCode == dto.SmartCardCode && d.Id != id);
+            if (exists) duplicateErrors.Add("کد هوشمند وارد شده قبلاً استفاده شده است.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.IdentificationNumber) && dto.IdentificationNumber != driver.IdentificationNumber)
+        {
+            bool exists = await _context.Drivers.AnyAsync(d => d.IdentificationNumber == dto.IdentificationNumber && d.Id != id);
+            if (exists) duplicateErrors.Add("شماره شناسنامه وارد شده قبلاً استفاده شده است.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.LicenseNumber) && dto.LicenseNumber != driver.LicenseNumber)
+        {
+            bool exists = await _context.Drivers.AnyAsync(d => d.LicenseNumber == dto.LicenseNumber && d.Id != id);
+            if (exists) duplicateErrors.Add("شماره گواهینامه وارد شده قبلاً استفاده شده است.");
+        }
+
+        if (isAdmin)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.NationalCode) && dto.NationalCode != driver.Person.NationalCode)
+            {
+                bool exists = await _context.Persons.AnyAsync(p => p.NationalCode == dto.NationalCode && p.Id != driver.PersonId);
+                if (exists) duplicateErrors.Add("کد ملی وارد شده قبلاً استفاده شده است.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.PhoneNumber) && dto.PhoneNumber != driver.Person.PhoneNumber)
+            {
+                bool exists = await _context.Persons.AnyAsync(p => p.PhoneNumber == dto.PhoneNumber && p.Id != driver.PersonId);
+                if (exists) duplicateErrors.Add("شماره موبایل وارد شده قبلاً استفاده شده است.");
+            }
+        }
+
+        if (duplicateErrors.Any())
+            throw new AppException("خطاهای تکراری:\n" + string.Join("\n", duplicateErrors));
 
         if (!string.IsNullOrWhiteSpace(dto.SmartCardCode)) driver.SmartCardCode = dto.SmartCardCode;
         if (!string.IsNullOrWhiteSpace(dto.IdentificationNumber)) driver.IdentificationNumber = dto.IdentificationNumber;

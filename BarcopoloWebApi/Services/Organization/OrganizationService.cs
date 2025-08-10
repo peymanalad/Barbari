@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Services.WalletManagement;
 
 namespace BarcopoloWebApi.Services.Organization
 {
@@ -15,11 +16,13 @@ namespace BarcopoloWebApi.Services.Organization
     {
         private readonly DataBaseContext _context;
         private readonly ILogger<OrganizationService> _logger;
+        private readonly IWalletService _walletService;
 
-        public OrganizationService(DataBaseContext context, ILogger<OrganizationService> logger)
+        public OrganizationService(DataBaseContext context, ILogger<OrganizationService> logger,IWalletService walletService)
         {
             _context = context;
             _logger = logger;
+            _walletService = walletService;
         }
 
         public async Task<OrganizationDto> CreateAsync(CreateOrganizationDto dto, long currentUserId)
@@ -34,6 +37,8 @@ namespace BarcopoloWebApi.Services.Organization
 
             _context.Organizations.Add(organization);
             await _context.SaveChangesAsync();
+
+            await _walletService.CreateWalletForOrganizationAsync(organization.Id);
 
             _logger.LogInformation("سازمان با شناسه {OrgId} توسط کاربر {UserId} ایجاد شد.", organization.Id, currentUserId);
 

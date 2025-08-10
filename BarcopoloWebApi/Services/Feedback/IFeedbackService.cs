@@ -9,5 +9,7 @@ namespace BarcopoloWebApi.Services
         Task<bool> DeleteAsync(long id, long currentUserId);
 
         Task<FeedbackDto> GetByOrderIdAsync(long orderId, long currentUserId);
+        Task<FeedbackDto> GetByIdAsync(long feedbackId, long currentUserId);
+
     }
 }

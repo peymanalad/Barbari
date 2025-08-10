@@ -13,8 +13,10 @@ namespace BarcopoloWebApi.Services.Order
         Task<OrderDto> GetByIdAsync(long id, long currentUserId);
         Task<OrderStatusDto> GetByTrackingNumberAsync(string trackingNumber);
         Task<PagedResult<OrderDto>> GetByOwnerAsync(long ownerId, long currentUserId, int pageNumber, int pageSize);
-        Task<PagedResult<OrderDto>> GetAllAsync(long currentUserId, int pageNumber, int pageSize);
+        Task<PagedResult<OrderDto>> GetAllAsync(long currentUserId, int page, int pageSize);
         Task ChangeStatusAsync(long orderId, ChangeOrderStatusDto dto, long currentUserId);
+        Task AssignOrderPersonnelAsync(long orderId, AssignOrderPersonnelDto dto, long currentUserId);
+
 
     }
 }

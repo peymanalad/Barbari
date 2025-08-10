@@ -33,7 +33,7 @@ namespace BarcopoloWebApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateMembershipDto dto)
         {
-            _logger.LogInformation("Adding membership to organization {OrganizationId} for person {PersonId}", dto.OrganizationId, dto.PersonId);
+            _logger.LogInformation("Adding membership to organization {OrganizationId} for person with NationalCode : {NationalCode}", dto.OrganizationId, dto.NationalCode);
             try
             {
                 var membership = await _membershipService.AddAsync(dto, CurrentUserId);

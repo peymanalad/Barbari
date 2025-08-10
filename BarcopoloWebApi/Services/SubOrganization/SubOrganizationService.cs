@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.SubOrganization;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Services.SubOrganization;
+using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,11 +13,13 @@ public class SubOrganizationService : ISubOrganizationService
 {
     private readonly DataBaseContext _context;
     private readonly ILogger<SubOrganizationService> _logger;
+    private readonly IWalletService _walletService;
 
-    public SubOrganizationService(DataBaseContext context, ILogger<SubOrganizationService> logger)
+    public SubOrganizationService(DataBaseContext context, ILogger<SubOrganizationService> logger,IWalletService walletService)
     {
         _context = context;
         _logger = logger;
+        _walletService = walletService;
     }
 
     public async Task<SubOrganizationDto> CreateAsync(CreateSubOrganizationDto dto, long currentUserId)
@@ -35,6 +38,8 @@ public class SubOrganizationService : ISubOrganizationService
 
         _context.SubOrganizations.Add(branch);
         await _context.SaveChangesAsync();
+
+        await _walletService.CreateWalletForBranchAsync(branch.Id);
 
         _logger.LogInformation("شعبه جدید با شناسه {BranchId} برای سازمان {OrgId} ثبت شد", branch.Id, dto.OrganizationId);
         return await MapToDtoAsync(branch);

@@ -7,4 +7,14 @@ public interface IFrequentAddressService
 
     Task<List<FrequentAddressDto>> GetDestinationsAsync(long currentUserId, FrequentAddressScope scope);
     Task<List<FrequentAddressDto>> GetOriginsAsync(long currentUserId, FrequentAddressScope scope);
+
+    Task<List<FrequentAddressDto>> GetFrequentAddressesAsync(
+        long currentUserId,
+        FrequentAddressType type,
+        bool isForOrganization,
+        long? organizationId = null,
+        long? branchId = null
+    );
+
+
 }

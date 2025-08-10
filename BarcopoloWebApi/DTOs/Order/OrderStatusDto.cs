@@ -5,4 +5,5 @@
     public string Status { get; set; } = string.Empty;
     public string? Remarks { get; set; }
     public DateTime? LastUpdated { get; set; }
+    public DateTime? EstimatedDeliveryTime { get; set; }
 }

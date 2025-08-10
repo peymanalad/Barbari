@@ -1,14 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BarcopoloWebApi.Controllers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class FrequentAddressController : ControllerBase
 {
     private readonly IFrequentAddressService _frequentAddressService;
+    private readonly ILogger<MembershipController> _logger;
 
-    public FrequentAddressController(IFrequentAddressService frequentAddressService)
+    public FrequentAddressController(IFrequentAddressService frequentAddressService, ILogger<MembershipController> logger)
     {
         _frequentAddressService = frequentAddressService;
+        _logger = logger;
     }
 
     [HttpPost("origins")]
@@ -26,6 +31,32 @@ public class FrequentAddressController : ControllerBase
         var result = await _frequentAddressService.GetDestinationsAsync(currentUserId, scope);
         return Ok(result);
     }
+
+    [HttpGet("frequent")]
+    public async Task<IActionResult> GetFrequentAddresses(
+        [FromQuery] FrequentAddressType type,
+        [FromQuery] bool isForOrganization,
+        [FromQuery] long? organizationId,
+        [FromQuery] long? branchId)
+    {
+        try
+        {
+            var list = await _frequentAddressService.GetFrequentAddressesAsync(
+                GetCurrentUserId(), type, isForOrganization, organizationId, branchId);
+            return Ok(list);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex, "خطا در دریافت آدرس‌های پر استفاده");
+        }
+    }
+    private IActionResult HandleError(Exception ex, string message, object? data = null)
+    {
+        _logger.LogError(ex, message);
+        return BadRequest(new { error = ex.Message, data });
+    }
+
+
 
     private long GetCurrentUserId()
     {

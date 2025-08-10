@@ -57,7 +57,7 @@ namespace BarcopoloWebApi.Security
                 .ToString()
                 .Replace("Bearer ", string.Empty);
 
-            if (!_userTokenRepository.CheckExistToken(token))
+            if (!await _userTokenRepository.CheckExistTokenAsync(token))
             {
                 context.Fail("Token is not registered.");
                 _logger.LogWarning("Token validation failed: token not found in database for UserId {UserId}", userId);

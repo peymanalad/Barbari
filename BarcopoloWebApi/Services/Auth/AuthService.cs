@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.Auth;
 using BarcopoloWebApi.DTOs.Token;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Services.Token;
+using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ namespace BarcopoloWebApi.Services.Auth
         private readonly UserTokenRepository _tokenRepo;
         private readonly IConfiguration _config;
         private readonly IPasswordHasher<Entities.Person> _passwordHasher;
+        private readonly IWalletService _walletService;
 
         public AuthService(
             DataBaseContext context,
@@ -30,7 +32,8 @@ namespace BarcopoloWebApi.Services.Auth
             IHttpContextAccessor httpContextAccessor,
             UserTokenRepository tokenRepo,
             IConfiguration config,
-            IPasswordHasher<Entities.Person> passwordHasher)
+            IPasswordHasher<Entities.Person> passwordHasher,
+            IWalletService walletService)
         {
             _context = context;
             _logger = logger;
@@ -38,6 +41,7 @@ namespace BarcopoloWebApi.Services.Auth
             _tokenRepo = tokenRepo;
             _config = config;
             _passwordHasher = passwordHasher;
+            _walletService = walletService;
         }
 
         public async Task<LoginResultDto> RegisterAsync(RegisterDto dto)
@@ -61,6 +65,8 @@ namespace BarcopoloWebApi.Services.Auth
 
             _context.Persons.Add(person);
             await _context.SaveChangesAsync();
+
+            await _walletService.CreateWalletForPersonAsync(person.Id);
 
             _logger.LogInformation("User registered with ID {Id}", person.Id);
 
@@ -170,7 +176,7 @@ namespace BarcopoloWebApi.Services.Auth
             var tokenString = new JwtSecurityTokenHandler().WriteToken(jwt);
             var refreshToken = Guid.NewGuid().ToString();
 
-            _tokenRepo.SaveToken(new UserToken
+            await _tokenRepo.SaveTokenAsync(new UserToken
             {
                 PersonId = person.Id,
                 TokenHash = SecurityHelper.GetSha256Hash(tokenString),

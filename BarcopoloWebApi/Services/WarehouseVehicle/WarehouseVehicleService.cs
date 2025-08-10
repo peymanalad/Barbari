@@ -45,7 +45,7 @@ public class WarehouseVehicleService : IWarehouseVehicleService
         var newAssignment = new WarehouseVehicle
         {
             WarehouseId = warehouseId,
-            VehicleId = vehicleId
+            VehicleId = vehicleId,
         };
 
         _context.WarehouseVehicles.Add(newAssignment);
@@ -85,26 +85,36 @@ public class WarehouseVehicleService : IWarehouseVehicleService
         var vehicles = await _context.WarehouseVehicles
             .Where(wv => wv.WarehouseId == warehouseId)
             .Include(wv => wv.Vehicle)
-                .ThenInclude(v => v.Driver)
-                    .ThenInclude(d => d.Person)
+            .ThenInclude(v => v.Driver)
+            .ThenInclude(d => d.Person)
             .Select(wv => new VehicleDto
             {
                 Id = wv.Vehicle.Id,
-                PlateNumber = wv.Vehicle.PlateNumber,
                 SmartCardCode = wv.Vehicle.SmartCardCode,
+                PlateIranCode = wv.Vehicle.PlateIranCode,
+                PlateThreeDigit = wv.Vehicle.PlateThreeDigit,
+                PlateLetter = wv.Vehicle.PlateLetter,
+                PlateTwoDigit = wv.Vehicle.PlateTwoDigit,
                 Model = wv.Vehicle.Model,
                 Color = wv.Vehicle.Color,
+                Engine = wv.Vehicle.Engine,
+                Chassis = wv.Vehicle.Chassis,
+                Axles = wv.Vehicle.Axles,
                 IsVan = wv.Vehicle.IsVan,
+                VanCommission = wv.Vehicle.VanCommission,
                 IsBroken = wv.Vehicle.IsBroken,
+                HasViolations = wv.Vehicle.HasViolations,
+                DriverId = wv.Vehicle.DriverId,
                 DriverFullName = wv.Vehicle.Driver != null && wv.Vehicle.Driver.Person != null
                     ? wv.Vehicle.Driver.Person.GetFullName()
                     : "بدون راننده"
             })
+
             .ToListAsync();
 
         return vehicles;
     }
-    public async Task<IEnumerable<VehicleDto>> GetUnassignedVehicles(long currentUserId)
+    public async Task<PagedResult<VehicleDto>> GetUnassignedVehicles(long currentUserId, int page = 1, int pageSize = 20)
     {
         if (!await IsAuthorizedAsync(currentUserId))
         {
@@ -112,29 +122,43 @@ public class WarehouseVehicleService : IWarehouseVehicleService
             throw new UnauthorizedAccessException("Not authorized to view unassigned vehicles.");
         }
 
-        var assignedVehicleIds = await _context.WarehouseVehicles
-            .Select(wv => wv.VehicleId)
-            .Distinct()
-            .ToListAsync();
+        var assignedVehicleIdsQuery = _context.WarehouseVehicles.Select(wv => wv.VehicleId);
 
-        var unassignedVehicles = await _context.Vehicles
-            .Where(v => !assignedVehicleIds.Contains(v.Id))
+        var baseQuery = _context.Vehicles
+            .Where(v => !assignedVehicleIdsQuery.Contains(v.Id));
+
+        var totalCount = await baseQuery.CountAsync();
+
+        var vehicles = await baseQuery
+            .OrderBy(v => v.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Include(v => v.Driver)
             .ThenInclude(d => d.Person)
+            .Select(v => new VehicleDto
+            {
+                Id = v.Id,
+                PlateNumber = v.PlateNumber,
+                Model = v.Model,
+                Color = v.Color,
+                SmartCardCode = v.SmartCardCode,
+                IsBroken = v.IsBroken,
+                IsVan = v.IsVan,
+                DriverFullName = v.Driver != null && v.Driver.Person != null
+                    ? v.Driver.Person.FirstName + " " + v.Driver.Person.LastName
+                    : "بدون راننده"
+            })
             .ToListAsync();
 
-        return unassignedVehicles.Select(v => new VehicleDto
+        return new PagedResult<VehicleDto>
         {
-            Id = v.Id,
-            PlateNumber = v.PlateNumber,
-            Model = v.Model,
-            Color = v.Color,
-            SmartCardCode = v.SmartCardCode,
-            IsBroken = v.IsBroken,
-            IsVan = v.IsVan,
-            DriverFullName = v.Driver?.Person.GetFullName() ?? "بدون راننده"
-        });
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Items = vehicles
+        };
     }
+
 
     private async Task<bool> IsAuthorizedAsync(long currentUserId)
     {

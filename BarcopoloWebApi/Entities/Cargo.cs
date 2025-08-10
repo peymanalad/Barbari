@@ -43,6 +43,8 @@ namespace BarcopoloWebApi.Entities
 
         [MaxLength(1000)]
         public string Description { get; set; }
+        public decimal? Value { get; set; }
+
 
         //[Required]
         //public long OrderId { get; set; }

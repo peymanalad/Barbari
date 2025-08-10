@@ -1,4 +1,5 @@
-﻿using BarcopoloWebApi.Data;
+﻿using AutoMapper;
+using BarcopoloWebApi.Data;
 using BarcopoloWebApi.DTOs.Cargo;
 using BarcopoloWebApi.DTOs.Order;
 using BarcopoloWebApi.DTOs.OrderEvent;
@@ -8,203 +9,478 @@ using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.Services.Order;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 public class OrderService : IOrderService
 {
     private readonly DataBaseContext _context;
     private readonly IFrequentAddressService _frequentAddressService;
     private readonly ILogger<OrderService> _logger;
+    private readonly IMapper _mapper;
     private const int MaxPageSize = 100;
 
 
 
-    public OrderService(DataBaseContext context, ILogger<OrderService> logger, IFrequentAddressService frequentAddressService)
+    public OrderService(DataBaseContext context, ILogger<OrderService> logger, IFrequentAddressService frequentAddressService, IMapper mapper)
     {
         _context = context;
         _logger = logger;
         _frequentAddressService = frequentAddressService;
+        _mapper = mapper;
     }
 
+    //public async Task<OrderDto> CreateAsync(CreateOrderDto dto, long currentUserId)
+    //{
+    //    _logger.LogInformation("در حال ایجاد سفارش برای مالک {OwnerId} توسط کاربر {CurrentUserId}", dto.OwnerId, currentUserId);
+
+    //    ValidateCreateOrderDto(dto);
+
+    //    var currentUser = await _context.Persons.FindAsync(currentUserId)
+    //        ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+    //    var owner = await _context.Persons.FindAsync(dto.OwnerId)
+    //        ?? throw new NotFoundException("مالک سفارش یافت نشد.");
+
+    //    if (dto.OwnerId != currentUserId && !currentUser.IsAdminOrSuperAdmin())
+    //        throw new ForbiddenAccessException("دسترسی برای ایجاد سفارش ندارید.");
+
+    //    Address originAddress;
+    //    if (dto.IsManualOrigin)
+    //    {
+    //        originAddress = new Address
+    //        {
+    //            FullAddress = dto.OriginFullAddress,
+    //            City = dto.OriginCity,
+    //            Province = dto.OriginProvince,
+    //            PostalCode = dto.OriginPostalCode,
+    //            Plate = dto.OriginPlate,
+    //            Unit = dto.OriginUnit,
+    //            Title = dto.OriginTitle,
+    //            PersonId = dto.IsForOrganization ? null : dto.OwnerId,
+    //            OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
+    //            BranchId = dto.IsForOrganization ? dto.BranchId : null
+    //        };
+    //        _context.Addresses.Add(originAddress);
+    //        await _context.SaveChangesAsync();
+
+    //        if (dto.SaveOriginAsFrequent)
+    //        {
+    //            await _frequentAddressService.InsertOrUpdateAsync(originAddress, FrequentAddressType.Origin,
+    //                dto.IsForOrganization ? null : dto.OwnerId,
+    //                dto.OrganizationId,
+    //                dto.BranchId);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        originAddress = await _context.Addresses.FindAsync(dto.OriginAddressId)
+    //            ?? throw new NotFoundException("آدرس مبدا یافت نشد.");
+    //    }
+
+    //    Address destinationAddress;
+    //    if (dto.IsManualDestination)
+    //    {
+    //        destinationAddress = new Address
+    //        {
+    //            FullAddress = dto.DestinationFullAddress,
+    //            City = dto.DestinationCity,
+    //            Province = dto.DestinationProvince,
+    //            PostalCode = dto.DestinationPostalCode,
+    //            Plate = dto.DestinationPlate,
+    //            Unit = dto.DestinationUnit,
+    //            Title = dto.DestinationTitle,
+    //            PersonId = dto.IsForOrganization ? null : dto.OwnerId,
+    //            OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
+    //            BranchId = dto.IsForOrganization ? dto.BranchId : null
+    //        };
+    //        _context.Addresses.Add(destinationAddress);
+    //        await _context.SaveChangesAsync();
+
+    //        if (dto.SaveDestinationAsFrequent)
+    //        {
+    //            await _frequentAddressService.InsertOrUpdateAsync(destinationAddress, FrequentAddressType.Destination,
+    //                dto.IsForOrganization ? null : dto.OwnerId,
+    //                dto.OrganizationId,
+    //                dto.BranchId);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        destinationAddress = await _context.Addresses.FindAsync(dto.DestinationAddressId)
+    //            ?? throw new NotFoundException("آدرس مقصد یافت نشد.");
+    //    }
+
+    //    var trackingNumber = GenerateTrackingNumber();
+
+    //    var order = new Order
+    //    {
+    //        OwnerId = dto.OwnerId,
+    //        OrganizationId = dto.OrganizationId,
+    //        BranchId = dto.BranchId,
+    //        OriginAddressId = originAddress.Id,
+    //        DestinationAddress = destinationAddress.FullAddress,
+    //        CreatedAt = DateTime.UtcNow,
+    //        Status = OrderStatus.Pending,
+    //        TrackingNumber = trackingNumber,
+    //        Fare = dto.Fare,
+    //        Insurance = dto.Insurance,
+    //        Vat = dto.Vat,
+    //        DeclaredValue = dto.DeclaredValue,
+    //        IsInsuranceRequested = dto.IsInsuranceRequested,
+    //        SenderName = dto.SenderName,
+    //        SenderPhone = dto.SenderPhone,
+    //        ReceiverName = dto.ReceiverName,
+    //        ReceiverPhone = dto.ReceiverPhone,
+    //        OrderDescription = dto.Details,
+    //        LoadingTime = dto.LoadingTime
+    //    };
+
+    //    _context.Orders.Add(order);
+    //    await _context.SaveChangesAsync();
+    //    _logger.LogInformation("سفارش با کد پیگیری {TrackingNumber} ایجاد شد", trackingNumber);
+
+    //    var unassignedCargos = await _context.Cargos
+    //        .Where(c => c.OwnerId == dto.OwnerId && c.OrderId == null)
+    //        .ToListAsync();
+
+    //    foreach (var cargo in unassignedCargos)
+    //        cargo.OrderId = order.Id;
+
+    //    var initialEvent = new OrderEvent
+    //    {
+    //        OrderId = order.Id,
+    //        Status = OrderStatus.Pending,
+    //        ChangedByPersonId = currentUserId,
+    //        Remarks = "سفارش ایجاد شد."
+    //    };
+    //    _context.OrderEvents.Add(initialEvent);
+
+    //    await _context.SaveChangesAsync();
+    //    _logger.LogInformation("سفارش {OrderId} با {CargoCount} بار ثبت و رویداد اولیه ایجاد شد", order.Id, unassignedCargos.Count);
+
+    //    var result = await _context.Orders
+    //        .Include(o => o.OriginAddress)
+    //        .Include(o => o.Warehouse)
+    //        .Include(o => o.Organization)
+    //        .Include(o => o.Cargos)
+    //            .ThenInclude(c => c.Images)
+    //        .Include(o => o.Payments)
+    //        .Include(o => o.Events)
+    //        .FirstOrDefaultAsync(o => o.Id == order.Id);
+
+    //    return _mapper.Map<OrderDto>(result);
+    //}
     public async Task<OrderDto> CreateAsync(CreateOrderDto dto, long currentUserId)
     {
-        _logger.LogInformation("شروع فرآیند ثبت سفارش جدید برای {OwnerId} توسط کاربر {CurrentUserId}", dto.OwnerId, currentUserId);
+        _logger.LogInformation("شروع ایجاد سفارش توسط کاربر {UserId} برای مالک {OwnerId}", currentUserId, dto.OwnerId);
+        ValidateCreateOrderDto(dto);
 
         var currentUser = await _context.Persons.FindAsync(currentUserId)
             ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
         var owner = await _context.Persons.FindAsync(dto.OwnerId)
-            ?? throw new NotFoundException($"مالک سفارش با شناسه {dto.OwnerId} یافت نشد.");
+            ?? throw new NotFoundException("مالک سفارش یافت نشد.");
 
         if (dto.OwnerId != currentUserId && !currentUser.IsAdminOrSuperAdmin())
-            throw new UnauthorizedAccessAppException("اجازه ثبت سفارش برای دیگران را ندارید.");
+            throw new ForbiddenAccessException("شما مجاز به ثبت سفارش برای دیگران نیستید.");
 
-        if (dto.LoadingTime.HasValue && dto.LoadingTime < DateTime.UtcNow)
-            throw new ArgumentException("زمان بارگیری نمی‌تواند در گذشته باشد.");
+        if (dto.IsForOrganization && dto.OrganizationId == null)
+            throw new AppException("شناسه سازمان برای سفارش سازمانی الزامی است.");
 
-        ValidateCreateOrderDto(dto);
+        if (!dto.IsForOrganization && (dto.OrganizationId != null || dto.BranchId != null))
+            throw new AppException("در سفارش شخصی نباید OrganizationId یا BranchId مقدار داشته باشند.");
 
-        var pendingCargos = await _context.Cargos
-            .Where(c => c.OwnerId == dto.OwnerId && c.OrderId == null)
-            .ToListAsync();
-
-        if (!pendingCargos.Any())
+        if (dto.IsForOrganization)
         {
-            _logger.LogWarning("تلاش برای ثبت سفارش بدون بار توسط کاربر {UserId}", currentUserId);
-            throw new BadRequestException("برای ثبت سفارش، باید حداقل یک بار ثبت شده باشد.");
+            var hasBranches = await _context.SubOrganizations
+                .AnyAsync(b => b.OrganizationId == dto.OrganizationId);
+
+            if (hasBranches)
+            {
+                if (dto.BranchId == null)
+                    throw new AppException("برای سازمان دارای شعبه، انتخاب شعبه الزامی است.");
+
+                var isBranchMember = await _context.OrganizationMemberships.AnyAsync(m =>
+                    m.PersonId == currentUserId &&
+                    m.OrganizationId == dto.OrganizationId &&
+                    m.BranchId == dto.BranchId);
+
+                if (!isBranchMember && !currentUser.IsAdminOrSuperAdmin())
+                    throw new ForbiddenAccessException("شما عضو این شعبه نیستید.");
+            }
+            else
+            {
+                if (dto.BranchId != null)
+                    throw new AppException("این سازمان شعبه‌ای ندارد. نباید مقدار BranchId ارسال شود.");
+
+                var isOrgMember = await _context.OrganizationMemberships.AnyAsync(m =>
+                    m.PersonId == currentUserId &&
+                    m.OrganizationId == dto.OrganizationId);
+
+                if (!isOrgMember && !currentUser.IsAdminOrSuperAdmin())
+                    throw new ForbiddenAccessException("شما عضو این سازمان نیستید.");
+            }
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        // === ساخت آدرس مبدا ===
+        Address originAddress;
 
-        try
+        if (dto.OriginAddressId.HasValue)
         {
-            Address originAddressEntity = await DetermineOriginAddressAsync(dto);
+            var freq = await _context.FrequentAddresses.FindAsync(dto.OriginAddressId.Value)
+                ?? throw new NotFoundException("آدرس پر استفاده مبدا یافت نشد.");
 
-            string destinationFullAddress = BuildDestinationAddressString(dto, out string destinationCity, out string destinationProvince, out string? postalCode, out string? plate, out string? unit, out string? title);
+            originAddress = new Address
+            {
+                FullAddress = freq.FullAddress,
+                City = freq.City,
+                Province = freq.Province,
+                PostalCode = freq.PostalCode,
+                Plate = freq.Plate,
+                Unit = freq.Unit,
+                Title = freq.Title,
+                PersonId = freq.PersonId,
+                OrganizationId = freq.OrganizationId,
+                BranchId = freq.BranchId
+            };
+            _context.Addresses.Add(originAddress);
+            await _context.SaveChangesAsync();
+
+            // افزایش استفاده
+            freq.UsageCount++;
+            freq.LastUsed = DateTime.UtcNow;
+        }
+        else if (dto.IsManualOrigin)
+        {
+            originAddress = new Address
+            {
+                FullAddress = dto.OriginFullAddress,
+                City = dto.OriginCity,
+                Province = dto.OriginProvince,
+                PostalCode = dto.OriginPostalCode,
+                Plate = dto.OriginPlate,
+                Unit = dto.OriginUnit,
+                Title = dto.OriginTitle,
+                PersonId = dto.IsForOrganization ? null : dto.OwnerId,
+                OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
+                BranchId = dto.IsForOrganization ? dto.BranchId : null
+            };
+            _context.Addresses.Add(originAddress);
+            await _context.SaveChangesAsync();
+
+            if (dto.SaveOriginAsFrequent)
+            {
+                await _frequentAddressService.InsertOrUpdateAsync(originAddress, FrequentAddressType.Origin,
+                    dto.IsForOrganization ? null : dto.OwnerId,
+                    dto.OrganizationId,
+                    dto.BranchId);
+            }
+        }
+        else if (dto.OriginAddressId.HasValue)
+        {
+            originAddress = await _context.Addresses.FindAsync(dto.OriginAddressId.Value)
+                ?? throw new NotFoundException("آدرس مبدا یافت نشد.");
+        }
+        else
+        {
+            throw new AppException("اطلاعات آدرس مبدا ناقص است.");
+        }
+
+        // === ساخت آدرس مقصد ===
+        Address destinationAddress;
+
+        if (dto.DestinationAddressId.HasValue)
+        {
+            var freq = await _context.FrequentAddresses.FindAsync(dto.DestinationAddressId.Value)
+                ?? throw new NotFoundException("آدرس پر استفاده مقصد یافت نشد.");
+
+            destinationAddress = new Address
+            {
+                FullAddress = freq.FullAddress,
+                City = freq.City,
+                Province = freq.Province,
+                PostalCode = freq.PostalCode,
+                Plate = freq.Plate,
+                Unit = freq.Unit,
+                Title = freq.Title,
+                PersonId = freq.PersonId,
+                OrganizationId = freq.OrganizationId,
+                BranchId = freq.BranchId
+            };
+            _context.Addresses.Add(destinationAddress);
+            await _context.SaveChangesAsync();
+
+            freq.UsageCount++;
+            freq.LastUsed = DateTime.UtcNow;
+        }
+        else if (dto.IsManualDestination)
+        {
+            destinationAddress = new Address
+            {
+                FullAddress = dto.DestinationFullAddress,
+                City = dto.DestinationCity,
+                Province = dto.DestinationProvince,
+                PostalCode = dto.DestinationPostalCode,
+                Plate = dto.DestinationPlate,
+                Unit = dto.DestinationUnit,
+                Title = dto.DestinationTitle,
+                PersonId = dto.IsForOrganization ? null : dto.OwnerId,
+                OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
+                BranchId = dto.IsForOrganization ? dto.BranchId : null
+            };
+            _context.Addresses.Add(destinationAddress);
+            await _context.SaveChangesAsync();
 
             if (dto.SaveDestinationAsFrequent)
             {
-                var tempDestinationAddress = new Address
-                {
-                    FullAddress = destinationFullAddress,
-                    City = destinationCity,
-                    Province = destinationProvince,
-                    PostalCode = postalCode,
-                    Plate = plate,
-                    Unit = unit,
-                    Title = title
-                };
-
-                await _frequentAddressService.InsertOrUpdateAsync(
-                    tempDestinationAddress,
-                    FrequentAddressType.Destination,
-                    personId: dto.IsForOrganization ? null : dto.OwnerId,
-                    organizationId: dto.IsForOrganization ? dto.OrganizationId : null,
-                    branchId: dto.IsForOrganization ? dto.BranchId : null
-                );
+                await _frequentAddressService.InsertOrUpdateAsync(destinationAddress, FrequentAddressType.Destination,
+                    dto.IsForOrganization ? null : dto.OwnerId,
+                    dto.OrganizationId,
+                    dto.BranchId);
             }
-
-            var combinedDestinationString = $"{destinationFullAddress}, {destinationCity}, {destinationProvince}";
-            if (!string.IsNullOrWhiteSpace(postalCode)) combinedDestinationString += $" (کدپستی: {postalCode})";
-            if (!string.IsNullOrWhiteSpace(plate)) combinedDestinationString += $" (پلاک: {plate})";
-            if (!string.IsNullOrWhiteSpace(unit)) combinedDestinationString += $" (واحد: {unit})";
-
-            var order = new Order
-            {
-                OwnerId = dto.OwnerId,
-                OriginAddressId = originAddressEntity.Id,
-                DestinationAddress = combinedDestinationString,
-                SenderName = dto.SenderName,
-                SenderPhone = dto.SenderPhone,
-                ReceiverName = dto.ReceiverName,
-                ReceiverPhone = dto.ReceiverPhone,
-                OrderDescription = dto.Details,
-                LoadingTime = dto.LoadingTime,
-                Status = OrderStatus.Pending,
-                TrackingNumber = GenerateTrackingNumber(),
-                CreatedAt = DateTime.UtcNow,
-                OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
-                BranchId = dto.IsForOrganization ? dto.BranchId : null,
-                DeclaredValue = dto.DeclaredValue,
-                IsInsuranceRequested = dto.IsInsuranceRequested,
-                Fare = dto.Fare,
-                Insurance = dto.Insurance,
-                Vat = dto.Vat
-            };
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            foreach (var cargo in pendingCargos)
-            {
-                cargo.OrderId = order.Id;
-            }
-            await _context.SaveChangesAsync();
-
-            _context.OrderEvents.Add(new OrderEvent
-            {
-                OrderId = order.Id,
-                Status = OrderStatus.Pending,
-                EventDateTime = DateTime.UtcNow,
-                Remarks = "سفارش ثبت شد",
-                ChangedByPersonId = currentUserId
-            });
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            _logger.LogInformation("سفارش جدید با شناسه {OrderId} و شماره پیگیری {TrackingNumber} با موفقیت ثبت شد", order.Id, order.TrackingNumber);
-
-            var createdOrderWithIncludes = await _context.Orders
-                .Include(o => o.Owner)
-                .Include(o => o.OriginAddress)
-                .Include(o => o.Organization)
-                .Include(o => o.Branch)
-                .Include(o => o.Cargos).ThenInclude(c => c.Images)
-                .Include(o => o.Cargos).ThenInclude(c => c.CargoType)
-                .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
-                .Include(o => o.Payments)
-                .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
-                .Include(o => o.Warehouse)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(o => o.Id == order.Id);
-
-            if (createdOrderWithIncludes == null)
-            {
-                _logger.LogError("Order created (ID: {OrderId}) but could not be retrieved immediately after creation.", order.Id);
-                throw new ApplicationException("Order created but could not be retrieved.");
-            }
-
-            return MapToOrderDto(createdOrderWithIncludes);
         }
-        catch (Exception ex)
+        else if (dto.DestinationAddressId.HasValue)
         {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "خطا در ثبت سفارش جدید برای {OwnerId}", dto.OwnerId);
-            throw;
+            destinationAddress = await _context.Addresses.FindAsync(dto.DestinationAddressId.Value)
+                ?? throw new NotFoundException("آدرس مقصد یافت نشد.");
         }
+        else
+        {
+            throw new AppException("اطلاعات آدرس مقصد ناقص است.");
+        }
+
+        var unassignedCargos = await _context.Cargos
+            .Where(c => c.OwnerId == dto.OwnerId && c.OrderId == null)
+            .ToListAsync();
+
+        if (!unassignedCargos.Any())
+            throw new AppException("برای ثبت سفارش، ابتدا باید حداقل یک 'بار' ثبت شود.");
+
+        // === ایجاد سفارش ===
+        var order = new Order
+        {
+            OwnerId = dto.OwnerId,
+            OrganizationId = dto.OrganizationId,
+            BranchId = dto.BranchId,
+            OriginAddressId = originAddress.Id,
+            DestinationAddress = destinationAddress.FullAddress,
+            CreatedAt = DateTime.UtcNow,
+            Status = OrderStatus.Pending,
+            TrackingNumber = GenerateTrackingNumber(),
+            Fare = dto.Fare,
+            Insurance = dto.Insurance,
+            Vat = dto.Vat,
+            DeclaredValue = dto.DeclaredValue,
+            IsInsuranceRequested = dto.IsInsuranceRequested,
+            SenderName = dto.SenderName,
+            SenderPhone = dto.SenderPhone,
+            ReceiverName = dto.ReceiverName,
+            ReceiverPhone = dto.ReceiverPhone,
+            OrderDescription = dto.Details,
+            LoadingTime = dto.LoadingTime
+        };
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+
+        foreach (var cargo in unassignedCargos)
+            cargo.OrderId = order.Id;
+
+        _context.OrderEvents.Add(new OrderEvent
+        {
+            OrderId = order.Id,
+            Status = OrderStatus.Pending,
+            ChangedByPersonId = currentUserId,
+            Remarks = "سفارش ایجاد شد."
+        });
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("سفارش با ID={OrderId} و {CargoCount} بار ایجاد شد.", order.Id, unassignedCargos.Count);
+
+        var result = await _context.Orders
+            .Include(o => o.OriginAddress)
+            .Include(o => o.Cargos).ThenInclude(c => c.Images)
+            .Include(o => o.Organization)
+            .Include(o => o.Warehouse)
+            .Include(o => o.Payments)
+            .Include(o => o.Events)
+            .FirstOrDefaultAsync(o => o.Id == order.Id);
+
+        return _mapper.Map<OrderDto>(result);
     }
+
+    private async Task<Address> CreateAddressAsync(CreateOrderDto dto, bool isOrigin)
+    {
+        var address = new Address
+        {
+            FullAddress = isOrigin ? dto.OriginFullAddress : dto.DestinationFullAddress,
+            City = isOrigin ? dto.OriginCity : dto.DestinationCity,
+            Province = isOrigin ? dto.OriginProvince : dto.DestinationProvince,
+            PostalCode = isOrigin ? dto.OriginPostalCode : dto.DestinationPostalCode,
+            Plate = isOrigin ? dto.OriginPlate : dto.DestinationPlate,
+            Unit = isOrigin ? dto.OriginUnit : dto.DestinationUnit,
+            Title = isOrigin ? dto.OriginTitle : dto.DestinationTitle,
+            PersonId = dto.IsForOrganization ? null : dto.OwnerId,
+            OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
+            BranchId = dto.IsForOrganization ? dto.BranchId : null
+        };
+
+        _context.Addresses.Add(address);
+        await _context.SaveChangesAsync();
+
+        return address;
+    }
+
     public async Task<OrderDto> GetByIdAsync(long id, long currentUserId)
     {
         _logger.LogInformation("دریافت سفارش {OrderId} توسط کاربر {UserId}", id, currentUserId);
 
         var order = await _context.Orders
-            .Include(o => o.OriginAddress)
-            .Include(o => o.Warehouse)
-            .Include(o => o.Organization)
-            .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
-            .Include(o => o.Cargos).ThenInclude(c => c.Images)
-            .Include(o => o.Cargos).ThenInclude(c => c.CargoType)
-            .Include(o => o.Payments)
-            .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
-            .FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException("سفارشی با این شناسه یافت نشد.");
+                        .Include(o => o.OriginAddress)
+                        .Include(o => o.Warehouse)
+                        .Include(o => o.Organization)
+                        .Include(o => o.Branch)
+                        .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
+                        .Include(o => o.Cargos).ThenInclude(c => c.Images)
+                        .Include(o => o.Cargos).ThenInclude(c => c.CargoType)
+                        .Include(o => o.Payments)
+                        .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(o => o.Id == id)
+                    ?? throw new NotFoundException("سفارشی با این شناسه یافت نشد.");
 
-        var user = await _context.Persons.FindAsync(currentUserId)
-            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+        var user = await _context.Persons
+                       .Include(p => p.Memberships)
+                       .FirstOrDefaultAsync(p => p.Id == currentUserId)
+                   ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
         await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, user, _context);
+
         return MapToOrderDto(order);
     }
 
-    public async Task<PagedResult<OrderDto>> GetByOwnerAsync(long ownerId, long currentUserId, int pageNumber, int pageSize)
+    public async Task<PagedResult<OrderDto>> GetByOwnerAsync(long ownerId, long currentUserId, int page, int pageSize)
     {
         _logger.LogInformation("دریافت سفارش‌های مالک {OwnerId} توسط کاربر {UserId} - صفحه {PageNumber} اندازه {PageSize}",
-            ownerId, currentUserId, pageNumber, pageSize);
+            ownerId, currentUserId, page, pageSize);
 
-        var user = await _context.Persons.FindAsync(currentUserId)
+        var user = await _context.Persons
+                       .Include(p => p.Memberships)
+                       .FirstOrDefaultAsync(p => p.Id == currentUserId)
                    ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+
         if (currentUserId != ownerId && !user.IsAdminOrSuperAdminOrMonitor())
         {
-            _logger.LogWarning("Attempt by non-admin/monitor user {CurrentUserId} (Role: {UserRole}) to access orders of owner {OwnerId}. Access denied.",
+            _logger.LogWarning("دسترسی غیرمجاز کاربر {CurrentUserId} (نقش: {UserRole}) به سفارش‌های مالک {OwnerId}",
                 currentUserId, user.Role, ownerId);
-            throw new UnauthorizedAccessAppException("شما دسترسی لازم برای مشاهده سفارش‌هاي اين كاربر را ندارید.");
+            throw new UnauthorizedAccessAppException("شما اجازه مشاهده سفارش‌های این کاربر را ندارید.");
         }
 
-        var query = _context.Orders.Where(o => o.OwnerId == ownerId);
-        var totalCount = await query.CountAsync();
-        query = query.OrderByDescending(o => o.CreatedAt);
-        query = query.Skip((pageNumber - 1) * pageSize).Take(pageSize);
-        query = query
+        var query = _context.Orders
+            .Where(o => o.OwnerId == ownerId)
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Include(o => o.Owner)
             .Include(o => o.OriginAddress)
             .Include(o => o.Organization)
@@ -218,61 +494,91 @@ public class OrderService : IOrderService
             .AsNoTracking();
 
         var orders = await query.ToListAsync();
-        var orderDtos = orders.Select(MapToOrderDto).ToList();
+        var totalCount = await _context.Orders.CountAsync(o => o.OwnerId == ownerId);
 
-        var pagedResult = new PagedResult<OrderDto>
+        return new PagedResult<OrderDto>
         {
-            Items = orderDtos,
+            Items = orders.Select(MapToOrderDto).ToList(),
             TotalCount = totalCount,
-            Page = pageNumber, 
+            Page = page,
             PageSize = pageSize
         };
-
-        return pagedResult;
     }
     public async Task<OrderStatusDto> GetByTrackingNumberAsync(string trackingNumber)
     {
-        _logger.LogInformation("در حال بررسی وضعیت سفارش با شماره پیگیری {TrackingNumber}", trackingNumber);
+        if (string.IsNullOrWhiteSpace(trackingNumber))
+            throw new ArgumentException("شماره پیگیری نمی‌تواند خالی باشد.", nameof(trackingNumber));
+
+        _logger.LogInformation("بررسی وضعیت سفارش با شماره پیگیری {TrackingNumber}", trackingNumber);
 
         var order = await _context.Orders
-            .Include(o => o.Events)
+            .Where(o => o.TrackingNumber == trackingNumber)
+            .Include(o => o.Events.OrderByDescending(e => e.EventDateTime))
             .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.TrackingNumber == trackingNumber);
+            .FirstOrDefaultAsync();
 
         if (order == null)
+        {
+            _logger.LogWarning("سفارش با شماره پیگیری {TrackingNumber} یافت نشد.", trackingNumber);
             throw new NotFoundException("سفارشی با این شماره پیگیری یافت نشد.");
+        }
 
-        var latestEvent = order.Events
-            .OrderByDescending(e => e.EventDateTime)
-            .FirstOrDefault();
+        var latestEvent = order.Events.FirstOrDefault();
 
         return new OrderStatusDto
         {
             OrderId = order.Id,
             TrackingNumber = order.TrackingNumber,
             Status = order.Status.ToString(),
-            Remarks = latestEvent?.Remarks ?? "وضعیت ثبت شده‌ای موجود نیست.",
-            LastUpdated = latestEvent?.EventDateTime
+            Remarks = latestEvent?.Remarks ?? "وضعیتی ثبت نشده است.",
+            LastUpdated = latestEvent?.EventDateTime,
+            EstimatedDeliveryTime = order.DeliveryTime 
         };
     }
-    public async Task<PagedResult<OrderDto>> GetAllAsync(long currentUserId, int pageNumber, int pageSize)
+    public async Task<PagedResult<OrderDto>> GetAllAsync(long currentUserId, int page, int pageSize)
     {
+        _logger.LogInformation("دریافت لیست سفارش‌ها توسط کاربر {UserId} - صفحه {PageNumber} اندازه {PageSize}",
+            currentUserId, page, pageSize);
 
-        _logger.LogInformation("دریافت لیست تمام سفارش‌ها توسط کاربر {UserId} - صفحه {PageNumber} اندازه {PageSize}",
-            currentUserId, pageNumber, pageSize);
-        var user = await _context.Persons.FindAsync(currentUserId)
-                   ?? throw new NotFoundException("کاربر جاری یافت نشد.");
-        if (!user.IsAdminOrSuperAdminOrMonitor())
+        var user = await _context.Persons
+            .Include(p => p.Memberships)
+            .FirstOrDefaultAsync(p => p.Id == currentUserId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+
+        IQueryable<Order> query;
+
+        if (user.IsAdminOrSuperAdminOrMonitor())
         {
-            _logger.LogWarning("کاربر غیرمجاز {UserId} با نقش {UserRole} تلاش کرد به لیست تمام سفارش‌ها دسترسی پیدا کند.",
-                currentUserId, user.Role);
-            throw new UnauthorizedAccessAppException("شما دسترسی لازم برای مشاهده تمام سفارش‌ها را ندارید.");
+            query = _context.Orders.AsQueryable();
         }
-        var query = _context.Orders.AsQueryable();
+        else if (user.Memberships.Any())
+        {
+            var orgIds = user.Memberships
+                .Select(m => m.OrganizationId)
+                .Distinct()
+                .ToList();
+
+            var branchIds = user.Memberships
+                .Where(m => m.BranchId != null)
+                .Select(m => m.BranchId!.Value)
+                .Distinct()
+                .ToList();
+
+            query = _context.Orders
+                .Where(o =>
+                    (o.OrganizationId != null && orgIds.Contains(o.OrganizationId.Value)) ||
+                    (o.BranchId != null && branchIds.Contains(o.BranchId.Value)));
+        }
+        else
+        {
+            // کاربر عادی بدون عضویت → فقط سفارش‌های خودش
+            query = _context.Orders
+                .Where(o => o.OwnerId == currentUserId);
+        }
+
         var totalCount = await query.CountAsync();
-        query = query.OrderByDescending(o => o.CreatedAt);
-        query = query.Skip((pageNumber - 1) * pageSize).Take(pageSize);
-        query = query
+
+        var orders = await query
             .Include(o => o.Owner)
             .Include(o => o.OriginAddress)
             .Include(o => o.Organization)
@@ -283,243 +589,164 @@ public class OrderService : IOrderService
             .Include(o => o.Payments)
             .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
             .Include(o => o.Warehouse)
-            .AsNoTracking();
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .AsNoTracking()
+            .ToListAsync();
 
-        var orders = await query.ToListAsync();
         var orderDtos = orders.Select(MapToOrderDto).ToList();
 
-
-        var pagedResult = new PagedResult<OrderDto>
+        return new PagedResult<OrderDto>
         {
             Items = orderDtos,
             TotalCount = totalCount,
-            Page = pageNumber,
+            Page = page,
             PageSize = pageSize
         };
-
-        return pagedResult;
     }
     public async Task<OrderDto> UpdateAsync(long orderId, UpdateOrderDto dto, long currentUserId)
     {
         _logger.LogInformation("درخواست به‌روزرسانی سفارش {OrderId} توسط کاربر {UserId}", orderId, currentUserId);
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
             var order = await _context.Orders
-               .Include(o => o.Owner)
-               .Include(o => o.Organization).ThenInclude(org => org.Memberships)
-               .Include(o => o.Branch).ThenInclude(b => b.Memberships)
-               .Include(o => o.OriginAddress)
-               .Include(o => o.Cargos).ThenInclude(c => c.Images)
-               .Include(o => o.Cargos).ThenInclude(c => c.CargoType)
-               .Include(o => o.Payments)
-               .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
-               .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
-               .Include(o => o.Warehouse)
-               .FirstOrDefaultAsync(o => o.Id == orderId);
+                .Include(o => o.Owner)
+                .Include(o => o.Organization).ThenInclude(org => org.Memberships)
+                .Include(o => o.Branch).ThenInclude(b => b.Memberships)
+                .Include(o => o.OriginAddress)
+                .Include(o => o.Cargos).ThenInclude(c => c.Images)
+                .Include(o => o.Cargos).ThenInclude(c => c.CargoType)
+                .Include(o => o.Payments)
+                .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
+                .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
+                .Include(o => o.Warehouse)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order == null)
                 throw new NotFoundException($"سفارش با شناسه {orderId} یافت نشد.");
 
-            var currentUser = await _context.Persons
+            var user = await _context.Persons
                 .Include(p => p.Memberships)
                 .FirstOrDefaultAsync(p => p.Id == currentUserId)
                 ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
-            if (!await CanUserModifyOrderAsync(order, currentUser))
-            {
-                throw new UnauthorizedAccessAppException($"شما دسترسی لازم برای به‌روزرسانی سفارش {orderId} را ندارید.");
-            }
+            if (!await CanUserModifyOrderAsync(order, user))
+                throw new ForbiddenAccessException("دسترسی به‌روزرسانی سفارش وجود ندارد.");
 
             if (order.Status >= OrderStatus.Assigned)
-            {
-                throw new InvalidOperationException($"سفارش در وضعیت '{order.Status}' قابل ویرایش نیست. فقط سفارشات در وضعیت Pending قابل ویرایش هستند.");
-            }
+                throw new InvalidOperationException($"سفارش در وضعیت '{order.Status}' قابل ویرایش نیست.");
 
-            bool hasChanges = false; 
-
-
-            if (dto.SenderName != null)
-            {
-                order.SenderName = dto.SenderName;
-                hasChanges = true;
-            }
-            if (dto.SenderPhone != null)
-            {
-                order.SenderPhone = dto.SenderPhone;
-                hasChanges = true;
-            }
-            if (dto.ReceiverName != null)
-            {
-                order.ReceiverName = dto.ReceiverName;
-                hasChanges = true;
-            }
-            if (dto.ReceiverPhone != null)
-            {
-                order.ReceiverPhone = dto.ReceiverPhone;
-                hasChanges = true;
-            }
-            if (dto.Details != null) 
-            {
-                order.OrderDescription = dto.Details;
-                hasChanges = true;
-            }
-
-            if (dto.LoadingTime.HasValue)
-            {
-                order.LoadingTime = dto.LoadingTime.Value;
-                hasChanges = true;
-            }
-
-            if (dto.DeclaredValue.HasValue)
-            {
-                order.DeclaredValue = dto.DeclaredValue.Value;
-                hasChanges = true;
-            }
-
-            if (dto.IsInsuranceRequested.HasValue)
-            {
-                order.IsInsuranceRequested = dto.IsInsuranceRequested.Value;
-                hasChanges = true;
-            }
-
-
-            if (hasChanges)
-            {
-                _context.OrderEvents.Add(new OrderEvent
-                {
-                    OrderId = order.Id,
-                    Status = order.Status, 
-                    EventDateTime = DateTime.UtcNow,
-                    Remarks = "اطلاعات سفارش به‌روزرسانی شد.",
-                    ChangedByPersonId = currentUserId
-                });
-
-                await _context.SaveChangesAsync(); 
-                await transaction.CommitAsync();
-
-                _logger.LogInformation("سفارش {OrderId} با موفقیت به‌روزرسانی شد.", orderId);
-            }
-            else
+            var updated = ApplyOrderChanges(order, dto);
+            if (!updated)
             {
                 await transaction.RollbackAsync();
-                _logger.LogInformation("هیچ تغییری برای به‌روزرسانی سفارش {OrderId} ارائه نشده بود.", orderId);
+                _logger.LogInformation("هیچ تغییری برای سفارش {OrderId} انجام نشد.", orderId);
+                return _mapper.Map<OrderDto>(order);
             }
 
+            _context.OrderEvents.Add(new OrderEvent
+            {
+                OrderId = order.Id,
+                Status = order.Status,
+                EventDateTime = DateTime.UtcNow,
+                Remarks = "اطلاعات سفارش به‌روزرسانی شد.",
+                ChangedByPersonId = currentUserId
+            });
 
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-            var finalOrderState = await _context.Orders
-                .Include(o => o.Owner)
+            _logger.LogInformation("سفارش {OrderId} با موفقیت به‌روزرسانی شد.", orderId);
+
+            var finalOrder = await _context.Orders
                 .Include(o => o.OriginAddress)
-                .Include(o => o.Organization)
-                .Include(o => o.Branch)
                 .Include(o => o.Cargos).ThenInclude(c => c.Images)
                 .Include(o => o.Cargos).ThenInclude(c => c.CargoType)
-                .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
                 .Include(o => o.Payments)
-                .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
+                .Include(o => o.Events).ThenInclude(e => e.ChangedByPerson)
                 .Include(o => o.Warehouse)
+                .Include(o => o.OrderVehicles).ThenInclude(ov => ov.Vehicle)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.Id == orderId);
 
-        
-            if (finalOrderState == null)
-            {
-                _logger.LogError("Failed to re-fetch order {OrderId} after update.", orderId);
-
-                return MapToOrderDto(order); 
-            }
-
-            return MapToOrderDto(finalOrderState);
+            return _mapper.Map<OrderDto>(finalOrder ?? order);
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
             _logger.LogError(ex, "خطا در به‌روزرسانی سفارش {OrderId}", orderId);
-            throw; // Re-throw the exception
+            throw;
         }
     }
     public async Task CancelAsync(long orderId, long currentUserId, string? cancellationReason = null)
     {
         _logger.LogInformation("درخواست لغو سفارش {OrderId} توسط کاربر {UserId}", orderId, currentUserId);
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var order = await _context.Orders
+            .Include(o => o.Owner)
+            .Include(o => o.Organization).ThenInclude(org => org.Memberships)
+            .Include(o => o.Branch).ThenInclude(b => b.Memberships)
+            .Include(o => o.Cargos)
+            .Include(o => o.Payments)
+            .Include(o => o.Events)
+            .FirstOrDefaultAsync(o => o.Id == orderId)
+            ?? throw new NotFoundException("سفارش مورد نظر یافت نشد.");
+
+        if (order.Status == OrderStatus.Cancelled)
         {
-            // Fetch Order with necessary includes for authorization
-            // Include relations needed for access check
-            var order = await _context.Orders
-                .Include(o => o.Owner) // Needed for owner check
-                .Include(o => o.Organization).ThenInclude(org => org.Memberships) // Needed for role check
-                .Include(o => o.Branch).ThenInclude(b => b.Memberships) // Needed for role check
-                .Include(o => o.Events) // Needed for adding new event
-                .FirstOrDefaultAsync(o => o.Id == orderId);
-
-            if (order == null)
-                throw new NotFoundException($"سفارش با شناسه {orderId} یافت نشد.");
-
-            var currentUser = await _context.Persons
-                .Include(p => p.Memberships) // Include memberships for access check
-                .FirstOrDefaultAsync(p => p.Id == currentUserId)
-                ?? throw new NotFoundException("کاربر جاری یافت نشد.");
-
-
-            // --- Authorization Check ---
-            if (!await CanUserCancelOrderAsync(order, currentUser))
-            {
-                throw new UnauthorizedAccessAppException($"شما دسترسی لازم برای لغو سفارش {orderId} را ندارید.");
-            }
-
-            // --- Business Rule Check ---
-            // Check if the order status allows cancellation (only before Assigned)
-            if (order.Status >= OrderStatus.Assigned) // Cannot cancel if Assigned or later
-            {
-                throw new InvalidOperationException($"سفارش در وضعیت '{order.Status}' قابل لغو نیست. فقط سفارشات در وضعیت Pending قابل لغو هستند.");
-            }
-
-            // Check if already cancelled (as in original code)
-            if (order.Status == OrderStatus.Cancelled)
-            {
-                _logger.LogWarning("سفارش {OrderId} قبلاً لغو شده است. درخواست لغو توسط {UserId} نادیده گرفته شد.", orderId, currentUserId);
-                await transaction.RollbackAsync(); // No changes needed, rollback transaction
-                return; // Or return false as in original? Let's return void to indicate success/no error.
-            }
-
-            // --- Update Order Status ---
-            // Assuming Order.SetStatus exists and handles internal logic/validation if any
-            // order.SetStatus(OrderStatus.Cancelled);
-            // If SetStatus doesn't exist or has no validation, set directly:
-            order.Status = OrderStatus.Cancelled;
-
-
-            // --- Create Order Event ---
-            string remarks = string.IsNullOrWhiteSpace(cancellationReason)
-                ? "سفارش لغو شد." // Simplified message
-                : $"سفارش لغو شد. دلیل: {cancellationReason}";
-
-            _context.OrderEvents.Add(new OrderEvent
-            {
-                OrderId = order.Id,
-                Status = OrderStatus.Cancelled,
-                EventDateTime = DateTime.UtcNow,
-                Remarks = remarks,
-                ChangedByPersonId = currentUserId
-            });
-
-            await _context.SaveChangesAsync(); // Save changes (Order status + Event)
-            await transaction.CommitAsync();
-
-            _logger.LogInformation("سفارش {OrderId} با موفقیت لغو شد.", orderId);
-
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "خطا در لغو سفارش {OrderId}", orderId);
-            throw;
+            throw new InvalidOperationException("سفارش قبلاً لغو شده است.");
         }
 
+        var currentUser = await _context.Persons
+            .Include(p => p.Memberships)
+            .FirstOrDefaultAsync(p => p.Id == currentUserId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+
+        var isPrivilegedUser = currentUser.IsAdminOrSuperAdminOrMonitor();
+        var isOwner = order.OwnerId == currentUserId;
+
+        bool isOrgAdmin = currentUser.Memberships.Any(m =>
+            m.OrganizationId == order.OrganizationId &&
+            m.BranchId == null &&
+            m.Role == SystemRole.orgadmin);
+
+        bool isBranchAdmin = order.BranchId.HasValue &&
+            currentUser.Memberships.Any(m =>
+                m.OrganizationId == order.OrganizationId &&
+                m.BranchId == order.BranchId &&
+                m.Role == SystemRole.branchadmin);
+
+        var hasCancelPermission = isPrivilegedUser || isOwner || isOrgAdmin || isBranchAdmin;
+
+        if (order.Status >= OrderStatus.Assigned && !isPrivilegedUser)
+        {
+            _logger.LogWarning("لغو سفارش {OrderId} در وضعیت {Status} فقط برای مدیران مجاز است.", orderId, order.Status);
+            throw new UnauthorizedAccessAppException("فقط مدیران مجاز به لغو سفارش پس از تخصیص هستند.");
+        }
+
+        if (!hasCancelPermission)
+        {
+            _logger.LogWarning("کاربر {UserId} مجاز به لغو سفارش {OrderId} نیست.", currentUserId, orderId);
+            throw new UnauthorizedAccessAppException("شما مجاز به لغو این سفارش نیستید.");
+        }
+
+        order.Status = OrderStatus.Cancelled;
+
+        _context.OrderEvents.Add(new OrderEvent
+        {
+            OrderId = order.Id,
+            Status = OrderStatus.Cancelled,
+            EventDateTime = DateTime.UtcNow,
+            ChangedByPersonId = currentUserId,
+            Remarks = cancellationReason ?? "لغو سفارش توسط کاربر"
+        });
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("سفارش {OrderId} با موفقیت توسط کاربر {UserId} لغو شد.", orderId, currentUserId);
     }
 
     public async Task ChangeStatusAsync(long orderId, ChangeOrderStatusDto dto, long currentUserId)
@@ -530,35 +757,68 @@ public class OrderService : IOrderService
         try
         {
             var order = await _context.Orders
-                .Include(o => o.Events) 
+                .Include(o => o.Events)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order == null)
                 throw new NotFoundException($"سفارش با شناسه {orderId} یافت نشد.");
 
-            var currentUser = await _context.Persons.FindAsync(currentUserId)
-                 ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+            var user = await _context.Persons
+                .Include(p => p.Memberships)
+                .FirstOrDefaultAsync(p => p.Id == currentUserId)
+                ?? throw new NotFoundException("کاربر جاری یافت نشد.");
 
-            if (!currentUser.IsAdminOrSuperAdminOrMonitor())
+            var isPrivileged = user.IsAdminOrSuperAdminOrMonitor();
+            var isDriver = order.CollectorId == currentUserId
+                                          || order.DelivererId == currentUserId
+                                          || order.FinalReceiverId == currentUserId;
+
+            var isOwner = order.OwnerId == currentUserId;
+
+            var currentStatus = order.Status;
+            var newStatus = dto.NewStatus;
+
+            // جلوگیری از بازگشت وضعیت
+            if ((int)newStatus < (int)currentStatus && !isPrivileged)
             {
-                _logger.LogWarning("کاربر غیرمجاز {UserId} تلاش کرد وضعیت سفارش {OrderId} را تغییر دهد.", currentUserId, orderId);
-                throw new UnauthorizedAccessAppException("شما دسترسی لازم برای تغییر وضعیت سفارش را ندارید.");
+                _logger.LogWarning("کاربر {UserId} تلاش کرد وضعیت سفارش {OrderId} را از {CurrentStatus} به {NewStatus} برگرداند.", currentUserId, orderId, currentStatus, newStatus);
+                throw new InvalidOperationException("امکان بازگشت وضعیت وجود ندارد.");
             }
 
-
-            if ((int)dto.NewStatus < (int)order.Status)
-                throw new InvalidOperationException($"امکان بازگشت وضعیت سفارش از '{order.Status}' به '{dto.NewStatus}' وجود ندارد.");
-
-            if (dto.NewStatus == order.Status)
+            if (currentStatus == newStatus)
             {
-                _logger.LogInformation("وضعیت سفارش {OrderId} هم اکنون {Status} است. تغییری اعمال نشد.", orderId, order.Status);
-                await transaction.RollbackAsync(); 
+                _logger.LogInformation("وضعیت فعلی سفارش {OrderId} با وضعیت جدید یکسان است ({Status}).", orderId, currentStatus);
                 return;
             }
 
-            order.Status = dto.NewStatus;
+            // بررسی مجوز تغییر وضعیت طبق نقش و وضعیت فعلی
+            if (!isPrivileged)
+            {
+                if (isDriver)
+                {
+                    if (!IsDriverStatusTransitionAllowed(currentStatus, newStatus))
+                        throw new UnauthorizedAccessAppException("شما مجاز به این تغییر وضعیت نیستید.");
+                }
+                else if (isOwner)
+                {
+                    if (newStatus != OrderStatus.Delivered)
+                        throw new UnauthorizedAccessAppException("شما فقط مجاز به تغییر وضعیت به 'Delivered' هستید.");
+                }
+                else
+                {
+                    throw new UnauthorizedAccessAppException("شما مجاز به تغییر وضعیت این سفارش نیستید.");
+                }
+            }
 
-            if (dto.NewStatus == OrderStatus.Delivered && order.DeliveryTime == null)
+            // فقط مدیران می‌توانند پس از Assigned، سفارش را Cancel کنند
+            if (newStatus == OrderStatus.Cancelled && (int)currentStatus >= (int)OrderStatus.Assigned && !isPrivileged)
+            {
+                throw new UnauthorizedAccessAppException("شما مجاز به لغو سفارش در این وضعیت نیستید.");
+            }
+
+            order.Status = newStatus;
+
+            if (newStatus == OrderStatus.Delivered && order.DeliveryTime == null)
             {
                 order.DeliveryTime = DateTime.UtcNow;
                 _logger.LogInformation("زمان تحویل برای سفارش {OrderId} ثبت شد.", orderId);
@@ -567,17 +827,16 @@ public class OrderService : IOrderService
             _context.OrderEvents.Add(new OrderEvent
             {
                 OrderId = order.Id,
-                Status = dto.NewStatus,
+                Status = newStatus,
                 EventDateTime = DateTime.UtcNow,
-                Remarks = dto.Remarks ?? $"وضعیت به '{dto.NewStatus}' تغییر یافت.", 
-                ChangedByPersonId = currentUserId
+                ChangedByPersonId = currentUserId,
+                Remarks = dto.Remarks ?? $"وضعیت به '{newStatus}' تغییر یافت."
             });
 
-            await _context.SaveChangesAsync(); 
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            _logger.LogInformation("وضعیت سفارش {OrderId} با موفقیت به {NewStatus} تغییر یافت.", order.Id, dto.NewStatus);
-
+            _logger.LogInformation("وضعیت سفارش {OrderId} با موفقیت از {OldStatus} به {NewStatus} تغییر یافت.", order.Id, currentStatus, newStatus);
         }
         catch (Exception ex)
         {
@@ -586,6 +845,58 @@ public class OrderService : IOrderService
             throw;
         }
     }
+
+    public async Task AssignOrderPersonnelAsync(long orderId, AssignOrderPersonnelDto dto, long currentUserId)
+    {
+        var order = await _context.Orders.FindAsync(orderId);
+        if (order == null)
+            throw new NotFoundException("Order not found");
+        var user = await _context.Persons
+                              .Include(p => p.Memberships)
+                              .FirstOrDefaultAsync(p => p.Id == currentUserId)
+                          ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+        if (!user.IsAdminOrSuperAdminOrMonitor())
+            throw new UnauthorizedAccessAppException("Only admin/superadmin/monitoring can assign order roles.");
+
+        bool anyChanges = false;
+
+        if (dto.CollectorId.HasValue && dto.CollectorId != order.CollectorId)
+        {
+            order.CollectorId = dto.CollectorId;
+            anyChanges = true;
+        }
+
+        if (dto.DelivererId.HasValue && dto.DelivererId != order.DelivererId)
+        {
+            order.DelivererId = dto.DelivererId;
+            anyChanges = true;
+        }
+
+        if (dto.FinalReceiverId.HasValue && dto.FinalReceiverId != order.FinalReceiverId)
+        {
+            order.FinalReceiverId = dto.FinalReceiverId;
+            anyChanges = true;
+        }
+
+        if (!anyChanges)
+            return;
+
+        var orderEvent = new OrderEvent
+        {
+            OrderId = order.Id,
+            Status = order.Status,
+            Remarks = dto.Remarks ?? "نقش‌های سفارش تغییر یافت.",
+            EventDateTime = DateTime.UtcNow,
+            ChangedByPersonId = currentUserId
+        };
+
+        _context.OrderEvents.Add(orderEvent);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("نقش‌های سفارش {OrderId} توسط کاربر {UserId} تغییر یافت. توضیحات: {Remarks}",
+            order.Id, currentUserId, dto.Remarks ?? "بدون توضیحات");
+    }
+
 
     private void ValidateCreateOrderDto(CreateOrderDto dto)
     {
@@ -596,19 +907,19 @@ public class OrderService : IOrderService
         if (string.IsNullOrWhiteSpace(dto.ReceiverName)) errors.Add("نام گیرنده الزامی است.");
         if (string.IsNullOrWhiteSpace(dto.ReceiverPhone)) errors.Add("شماره گیرنده الزامی است.");
 
-        if (dto.IsManualDestination)
-        { 
-            if (string.IsNullOrWhiteSpace(dto.DestinationFullAddress)) errors.Add("آدرس کامل مقصد الزامی است.");
-            if (string.IsNullOrWhiteSpace(dto.DestinationCity)) errors.Add("شهر مقصد الزامی است.");
-            if (string.IsNullOrWhiteSpace(dto.DestinationProvince)) errors.Add("استان مقصد الزامی است.");
-        }
-        else
-        {
+        //if (dto.IsManualDestination)
+        //{ 
+        //    if (string.IsNullOrWhiteSpace(dto.DestinationFullAddress)) errors.Add("آدرس کامل مقصد الزامی است.");
+        //    if (string.IsNullOrWhiteSpace(dto.DestinationCity)) errors.Add("شهر مقصد الزامی است.");
+        //    if (string.IsNullOrWhiteSpace(dto.DestinationProvince)) errors.Add("استان مقصد الزامی است.");
+        //}
+        //else
+        //{
 
-            if (string.IsNullOrWhiteSpace(dto.DestinationFullAddress)) errors.Add("آدرس کامل مقصد الزامی است.");
-            if (string.IsNullOrWhiteSpace(dto.DestinationCity)) errors.Add("شهر مقصد الزامی است.");
-            if (string.IsNullOrWhiteSpace(dto.DestinationProvince)) errors.Add("استان مقصد الزامی است.");
-        }
+        //    if (string.IsNullOrWhiteSpace(dto.DestinationFullAddress)) errors.Add("آدرس کامل مقصد الزامی است.");
+        //    if (string.IsNullOrWhiteSpace(dto.DestinationCity)) errors.Add("شهر مقصد الزامی است.");
+        //    if (string.IsNullOrWhiteSpace(dto.DestinationProvince)) errors.Add("استان مقصد الزامی است.");
+        //}
 
 
         if (dto.IsForOrganization)
@@ -685,9 +996,37 @@ public class OrderService : IOrderService
     }
     private async Task<bool> CanUserModifyOrderAsync(Order order, Person currentUser)
     {
-        // For now, update permissions are the same as cancel permissions.
-        // This logic can be made more granular if needed (e.g., allow Branch User to update but not cancel).
-        return await CanUserCancelOrderAsync(order, currentUser);
+        // Admins and Monitors always have access
+        if (currentUser.IsAdminOrSuperAdminOrMonitor())
+            return true;
+
+        // The owner of the order can update it
+        if (order.OwnerId == currentUser.Id)
+            return true;
+
+        // If the order is organization-related, validate organization memberships
+        if (order.OrganizationId.HasValue)
+        {
+            var orgId = order.OrganizationId.Value;
+            var branchId = order.BranchId;
+
+            foreach (var membership in currentUser.Memberships)
+            {
+                if (membership.OrganizationId != orgId)
+                    continue;
+
+                // Org Admin can update any order in their organization
+                if (membership.Role == SystemRole.orgadmin && membership.BranchId == null)
+                    return true;
+
+                // Branch Admin can update orders in their branch
+                if (membership.Role == SystemRole.branchadmin && membership.BranchId == branchId)
+                    return true;
+            }
+        }
+
+        _logger.LogDebug("User {UserId} is not authorized to modify order {OrderId}", currentUser.Id, order.Id);
+        return false;
     }
     private async Task<bool> CanUserCancelOrderAsync(Order order, Person currentUser)
     {
@@ -899,4 +1238,46 @@ public class OrderService : IOrderService
             }).ToList()
         };
     }
+
+    private bool ApplyOrderChanges( Order order, UpdateOrderDto dto)
+    {
+        bool changed = false;
+
+        void TryUpdate<T>(T? newValue, Action<T> setter) where T : class
+        {
+            if (newValue != null)
+            {
+                setter(newValue);
+                changed = true;
+            }
+        }
+
+        void TryUpdateStruct<T>(T? newValue, Action<T> setter) where T : struct
+        {
+            if (newValue.HasValue)
+            {
+                setter(newValue.Value);
+                changed = true;
+            }
+        }
+
+        TryUpdate(dto.SenderName, val => order.SenderName = val);
+        TryUpdate(dto.SenderPhone, val => order.SenderPhone = val);
+        TryUpdate(dto.ReceiverName, val => order.ReceiverName = val);
+        TryUpdate(dto.ReceiverPhone, val => order.ReceiverPhone = val);
+        TryUpdate(dto.Details, val => order.OrderDescription = val);
+        TryUpdateStruct(dto.LoadingTime, val => order.LoadingTime = val);
+        TryUpdateStruct(dto.DeclaredValue, val => order.DeclaredValue = val);
+        TryUpdateStruct(dto.IsInsuranceRequested, val => order.IsInsuranceRequested = val);
+
+        return changed;
+    }
+
+    private bool IsDriverStatusTransitionAllowed(OrderStatus current, OrderStatus next)
+    {
+        return (current == OrderStatus.Assigned && next == OrderStatus.Loading)
+               || (current == OrderStatus.Loading && next == OrderStatus.InProgress)
+               || (current == OrderStatus.InProgress && next == OrderStatus.Unloading);
+    }
+
 }

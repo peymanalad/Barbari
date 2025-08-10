@@ -3,6 +3,8 @@ using BarcopoloWebApi.DTOs.Membership;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Services.Person;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,89 +14,182 @@ namespace BarcopoloWebApi.Services
     {
         private readonly DataBaseContext _context;
         private readonly ILogger<MembershipService> _logger;
+        private readonly IPasswordHasher<Entities.Person> _passwordHasher;
+        private readonly IPersonService _personService;
 
-        public MembershipService(DataBaseContext context, ILogger<MembershipService> logger)
+        public MembershipService(DataBaseContext context, ILogger<MembershipService> logger
+            , IPasswordHasher<Entities.Person> passwordHasher, IPersonService personService)
         {
             _context = context;
             _logger = logger;
+            _passwordHasher = passwordHasher;
+            _personService = personService;
         }
 
+        //public async Task<MembershipDto> AddAsync(CreateMembershipDto dto, long currentUserId)
+        //{
+        //    _logger.LogInformation("User {UserId} is attempting to add person {PersonId} to organization {OrgId} with role {Role}",
+        //        currentUserId, dto.PersonId, dto.OrganizationId, dto.Role);
+
+        //    if (dto.PersonId == currentUserId)
+        //        throw new ForbiddenAccessException("شما نمی‌توانید خودتان را اضافه کنید");
+
+        //    var currentUser = await _context.Persons.FindAsync(currentUserId)
+        //        ?? throw new ForbiddenAccessException("کاربر جاری یافت نشد");
+
+        //    var targetPerson = await _context.Persons.FindAsync(dto.PersonId)
+        //        ?? throw new NotFoundException("کاربر مقصد یافت نشد");
+
+        //    var existing = await _context.OrganizationMemberships
+        //        .FirstOrDefaultAsync(m => m.OrganizationId == dto.OrganizationId && m.PersonId == dto.PersonId);
+        //    if (existing != null)
+        //        throw new AppException("این کاربر قبلاً عضو این سازمان شده است");
+
+        //    var normalizedRole = dto.Role.Trim().ToLower();
+        //    if (!Enum.TryParse<SystemRole>(normalizedRole, true, out var targetRoleEnum))
+        //        throw new AppException("نقش وارد شده نامعتبر است");
+
+        //    if (targetRoleEnum == SystemRole.superadmin)
+        //        throw new ForbiddenAccessException("اجازه تعریف کاربر با نقش superadmin وجود ندارد");
+
+        //    var isSuperadmin = currentUser.IsSuperAdmin();
+        //    var isAdmin = currentUser.IsAdmin();
+
+        //    if (isAdmin)
+        //    {
+        //        if (targetRoleEnum == SystemRole.superadmin)
+        //            throw new ForbiddenAccessException("admin نمی‌تواند superadmin تعریف کند");
+        //    }
+
+        //    if (!isSuperadmin && !isAdmin)
+        //    {
+        //        var userMembership = await _context.OrganizationMemberships
+        //            .FirstOrDefaultAsync(m => m.PersonId == currentUserId);
+
+        //        if (userMembership == null)
+        //            throw new ForbiddenAccessException("شما در هیچ سازمانی عضو نیستید");
+
+        //        var isOrgAdmin = userMembership.OrganizationId == dto.OrganizationId && userMembership.Role == SystemRole.orgadmin;
+        //        var isBranchAdmin = userMembership.BranchId == dto.BranchId && userMembership.Role == SystemRole.branchadmin;
+
+        //        if (!isOrgAdmin && !isBranchAdmin)
+        //            throw new ForbiddenAccessException("شما اجازه افزودن عضو را ندارید");
+
+        //        if (isOrgAdmin)
+        //        {
+        //            if (userMembership.OrganizationId != dto.OrganizationId)
+        //                throw new ForbiddenAccessException("orgadmin فقط می‌تواند به سازمان خودش عضو اضافه کند");
+
+        //            if (targetRoleEnum is SystemRole.admin or SystemRole.superadmin)
+        //                throw new ForbiddenAccessException("orgadmin نمی‌تواند نقش admin یا superadmin ایجاد کند");
+        //        }
+
+        //        if (isBranchAdmin)
+        //        {
+        //            if (userMembership.OrganizationId != dto.OrganizationId)
+        //                throw new ForbiddenAccessException("branchadmin فقط به سازمان خودش دسترسی دارد");
+
+        //            if (userMembership.BranchId != dto.BranchId)
+        //                throw new ForbiddenAccessException("branchadmin فقط به شعبه خودش دسترسی دارد");
+
+        //            if (targetRoleEnum is SystemRole.admin or SystemRole.superadmin or SystemRole.orgadmin)
+        //                throw new ForbiddenAccessException("branchadmin فقط می‌تواند نقش user یا branchadmin ایجاد کند");
+        //        }
+        //    }
+
+        //    if (dto.BranchId.HasValue)
+        //    {
+        //        var branch = await _context.SubOrganizations.FindAsync(dto.BranchId.Value);
+        //        if (branch == null || branch.OrganizationId != dto.OrganizationId)
+        //            throw new AppException("شعبه وارد شده با سازمان مطابقت ندارد");
+        //    }
+
+        //    var membership = new OrganizationMembership
+        //    {
+        //        PersonId = dto.PersonId,
+        //        OrganizationId = dto.OrganizationId,
+        //        BranchId = dto.BranchId,
+        //        Role = targetRoleEnum,
+        //        JoinedAt = DateTime.UtcNow
+        //    };
+
+        //    await _context.OrganizationMemberships.AddAsync(membership);
+        //    await _context.SaveChangesAsync();
+
+        //    _logger.LogInformation("عضویت برای شخص {PersonId} با نقش {Role} در سازمان {OrgId} ایجاد شد", dto.PersonId, dto.Role, dto.OrganizationId);
+
+        //    return new MembershipDto
+        //    {
+        //        Id = membership.Id,
+        //        PersonId = dto.PersonId,
+        //        OrganizationId = dto.OrganizationId,
+        //        BranchId = dto.BranchId,
+        //        Role = membership.Role.ToString(),
+        //        JoinedAt = membership.JoinedAt,
+        //        OrganizationName = (await _context.Organizations.FindAsync(dto.OrganizationId))?.Name ?? "",
+        //        BranchName = dto.BranchId.HasValue
+        //            ? (await _context.SubOrganizations.FindAsync(dto.BranchId.Value))?.Name
+        //            : null,
+        //        PersonFullName = targetPerson.GetFullName()
+        //    };
+        //}
         public async Task<MembershipDto> AddAsync(CreateMembershipDto dto, long currentUserId)
         {
-            _logger.LogInformation("User {UserId} is attempting to add person {PersonId} to organization {OrgId} with role {Role}",
-                currentUserId, dto.PersonId, dto.OrganizationId, dto.Role);
-
-            if (dto.PersonId == currentUserId)
-                throw new ForbiddenAccessException("شما نمی‌توانید خودتان را اضافه کنید");
+            _logger.LogInformation("User {UserId} is attempting to add person with NationalCode {NationalCode} to organization {OrgId} and branch {BranchId} with role {Role}",
+                currentUserId, dto.NationalCode, dto.OrganizationId, dto.BranchId, dto.Role);
 
             var currentUser = await _context.Persons.FindAsync(currentUserId)
                 ?? throw new ForbiddenAccessException("کاربر جاری یافت نشد");
 
-            var targetPerson = await _context.Persons.FindAsync(dto.PersonId)
-                ?? throw new NotFoundException("کاربر مقصد یافت نشد");
-
-            // بررسی وجود عضویت قبلی
-            var existing = await _context.OrganizationMemberships
-                .FirstOrDefaultAsync(m => m.OrganizationId == dto.OrganizationId && m.PersonId == dto.PersonId);
-            if (existing != null)
-                throw new AppException("این کاربر قبلاً عضو این سازمان شده است");
-
-            // اعتبارسنجی نقش هدف
-            var normalizedRole = dto.Role.Trim().ToLower();
-            if (!Enum.TryParse<SystemRole>(normalizedRole, true, out var targetRoleEnum))
-                throw new AppException("نقش وارد شده نامعتبر است");
-
-            if (targetRoleEnum == SystemRole.superadmin)
-                throw new ForbiddenAccessException("اجازه تعریف کاربر با نقش superadmin وجود ندارد");
-
             var isSuperadmin = currentUser.IsSuperAdmin();
             var isAdmin = currentUser.IsAdmin();
 
-            // اگر admin هست:
-            if (isAdmin)
+            var memberships = await _context.OrganizationMemberships
+                .Where(m => m.PersonId == currentUserId)
+                .ToListAsync();
+
+            var isOrgAdmin = memberships.Any(m => m.Role == SystemRole.orgadmin);
+            var isBranchAdmin = memberships.Any(m => m.Role == SystemRole.branchadmin);
+
+            if (!isSuperadmin && !isAdmin && !isOrgAdmin && !isBranchAdmin)
+                throw new ForbiddenAccessException("شما اجازه افزودن عضو را ندارید");
+
+            if (!Enum.TryParse<SystemRole>(dto.Role.Trim(), true, out var targetRoleEnum))
+                throw new AppException("نقش وارد شده نامعتبر است");
+
+            if (targetRoleEnum == SystemRole.superadmin)
+                throw new ForbiddenAccessException("اجازه تعریف نقش superadmin وجود ندارد");
+
+            if (isAdmin && targetRoleEnum == SystemRole.superadmin)
+                throw new ForbiddenAccessException("admin نمی‌تواند superadmin تعریف کند");
+
+            if (isOrgAdmin)
             {
-                if (targetRoleEnum == SystemRole.superadmin)
-                    throw new ForbiddenAccessException("admin نمی‌تواند superadmin تعریف کند");
-            }
+                var orgAccess = memberships.FirstOrDefault(m => m.OrganizationId == dto.OrganizationId && m.Role == SystemRole.orgadmin);
+                if (orgAccess == null)
+                    throw new ForbiddenAccessException("orgadmin فقط می‌تواند به سازمان‌های خودش عضو اضافه کند");
 
-            // اگر orgadmin هست:
-            if (!isSuperadmin && !isAdmin)
-            {
-                var userMembership = await _context.OrganizationMemberships
-                    .FirstOrDefaultAsync(m => m.PersonId == currentUserId);
-
-                if (userMembership == null)
-                    throw new ForbiddenAccessException("شما در هیچ سازمانی عضو نیستید");
-
-                var isOrgAdmin = userMembership.OrganizationId == dto.OrganizationId && userMembership.Role == SystemRole.orgadmin;
-                var isBranchAdmin = userMembership.BranchId == dto.BranchId && userMembership.Role == SystemRole.branchadmin;
-
-                if (!isOrgAdmin && !isBranchAdmin)
-                    throw new ForbiddenAccessException("شما اجازه افزودن عضو را ندارید");
-
-                if (isOrgAdmin)
+                if (dto.BranchId.HasValue)
                 {
-                    if (userMembership.OrganizationId != dto.OrganizationId)
-                        throw new ForbiddenAccessException("orgadmin فقط می‌تواند به سازمان خودش عضو اضافه کند");
-
-                    if (targetRoleEnum is SystemRole.admin or SystemRole.superadmin)
-                        throw new ForbiddenAccessException("orgadmin نمی‌تواند نقش admin یا superadmin ایجاد کند");
+                    var branch = await _context.SubOrganizations.FindAsync(dto.BranchId.Value);
+                    if (branch == null || branch.OrganizationId != dto.OrganizationId)
+                        throw new ForbiddenAccessException("orgadmin فقط می‌تواند به شعبه‌های سازمان خودش عضو اضافه کند");
                 }
 
-                if (isBranchAdmin)
-                {
-                    if (userMembership.OrganizationId != dto.OrganizationId)
-                        throw new ForbiddenAccessException("branchadmin فقط به سازمان خودش دسترسی دارد");
-
-                    if (userMembership.BranchId != dto.BranchId)
-                        throw new ForbiddenAccessException("branchadmin فقط به شعبه خودش دسترسی دارد");
-
-                    if (targetRoleEnum is SystemRole.admin or SystemRole.superadmin or SystemRole.orgadmin)
-                        throw new ForbiddenAccessException("branchadmin فقط می‌تواند نقش user یا branchadmin ایجاد کند");
-                }
+                if (targetRoleEnum is SystemRole.admin or SystemRole.superadmin)
+                    throw new ForbiddenAccessException("orgadmin نمی‌تواند نقش admin یا superadmin ایجاد کند");
             }
 
-            // اعتبارسنجی branch اگر وجود دارد
+            if (isBranchAdmin)
+            {
+                var branchAccess = memberships.FirstOrDefault(m => m.OrganizationId == dto.OrganizationId && m.BranchId == dto.BranchId && m.Role == SystemRole.branchadmin);
+                if (branchAccess == null)
+                    throw new ForbiddenAccessException("branchadmin فقط به شعبه‌های خودش دسترسی دارد");
+
+                if (targetRoleEnum is SystemRole.admin or SystemRole.superadmin or SystemRole.orgadmin)
+                    throw new ForbiddenAccessException("branchadmin فقط می‌تواند نقش user یا branchadmin ایجاد کند");
+            }
+
             if (dto.BranchId.HasValue)
             {
                 var branch = await _context.SubOrganizations.FindAsync(dto.BranchId.Value);
@@ -102,10 +197,49 @@ namespace BarcopoloWebApi.Services
                     throw new AppException("شعبه وارد شده با سازمان مطابقت ندارد");
             }
 
-            // ایجاد عضویت
+            var personId = await _personService.FindPersonByNationalCodeAsync(dto.NationalCode);
+            Entities.Person person;
+
+            if (personId > 0)
+            {
+                person = await _context.Persons.FindAsync(personId)
+                         ?? throw new NotFoundException("کاربر با کد ملی پیدا نشد");
+            }
+
+
+            else
+            {
+                person = new Entities.Person
+                {
+                    FirstName = dto.FirstName,
+                    LastName = dto.LastName,
+                    PhoneNumber = dto.PhoneNumber,
+                    NationalCode = dto.NationalCode,
+                    Role = SystemRole.user,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true,
+                };
+
+                person.PasswordHash = _passwordHasher.HashPassword(person, dto.NationalCode);
+
+                await _context.Persons.AddAsync(person);
+                await _context.SaveChangesAsync();
+            }
+
+            if (person.Id == currentUserId)
+                throw new ForbiddenAccessException("شما نمی‌توانید خودتان را اضافه کنید");
+
+            var alreadyMember = await _context.OrganizationMemberships.AnyAsync(m =>
+                m.OrganizationId == dto.OrganizationId &&
+                m.PersonId == person.Id &&
+                m.BranchId == dto.BranchId);
+
+            if (alreadyMember)
+                throw new AppException("این کاربر قبلاً در این سازمان/شعبه عضو شده است");
+
             var membership = new OrganizationMembership
             {
-                PersonId = dto.PersonId,
+                PersonId = person.Id,
                 OrganizationId = dto.OrganizationId,
                 BranchId = dto.BranchId,
                 Role = targetRoleEnum,
@@ -115,12 +249,13 @@ namespace BarcopoloWebApi.Services
             await _context.OrganizationMemberships.AddAsync(membership);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("عضویت برای شخص {PersonId} با نقش {Role} در سازمان {OrgId} ایجاد شد", dto.PersonId, dto.Role, dto.OrganizationId);
+            _logger.LogInformation("عضویت برای شخص {PersonId} با نقش {Role} در سازمان {OrgId} و شعبه {BranchId} ایجاد شد",
+                person.Id, dto.Role, dto.OrganizationId, dto.BranchId);
 
             return new MembershipDto
             {
                 Id = membership.Id,
-                PersonId = dto.PersonId,
+                PersonId = person.Id,
                 OrganizationId = dto.OrganizationId,
                 BranchId = dto.BranchId,
                 Role = membership.Role.ToString(),
@@ -129,9 +264,10 @@ namespace BarcopoloWebApi.Services
                 BranchName = dto.BranchId.HasValue
                     ? (await _context.SubOrganizations.FindAsync(dto.BranchId.Value))?.Name
                     : null,
-                PersonFullName = targetPerson.GetFullName()
+                PersonFullName = person.GetFullName()
             };
         }
+
 
         public async Task<MembershipDto> UpdateAsync(long membershipId, UpdateMembershipDto dto, long currentUserId)
         {

@@ -169,6 +169,9 @@ namespace BarcopoloWebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal?>("Value")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal?>("Weight")
                         .HasColumnType("decimal(18,2)");
 

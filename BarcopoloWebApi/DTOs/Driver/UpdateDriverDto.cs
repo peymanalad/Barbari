@@ -24,7 +24,6 @@ namespace BarcopoloWebApi.DTOs.Driver
 
         public bool? HasViolations { get; set; }
 
-        // فقط admin یا superadmin حق تغییر این‌ها را دارند
         [MaxLength(10)]
         public string? NationalCode { get; set; }
 

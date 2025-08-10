@@ -90,19 +90,19 @@ namespace BarcopoloWebApi.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<PagedResult<OrderDto>>> GetAllOrders(
-            [FromQuery] int pageNumber = 1,
+            [FromQuery] int page = 1,
             [FromQuery] int pageSize = DefaultPageSize)
         {
             try
             {
                 pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
-                pageNumber = Math.Max(1, pageNumber); 
+                page = Math.Max(1, page); 
 
                 _logger.LogInformation("دریافت لیست تمام سفارش‌ها توسط کاربر {UserId} - صفحه {PageNumber} اندازه {PageSize}",
-                    CurrentUserId, pageNumber, pageSize);
+                    CurrentUserId, page, pageSize);
 
 
-                var pagedOrders = await _orderService.GetAllAsync(CurrentUserId, pageNumber, pageSize);
+                var pagedOrders = await _orderService.GetAllAsync(CurrentUserId, page, pageSize);
                 return Ok(pagedOrders);
             }
             catch (UnauthorizedAccessAppException ex)
@@ -368,5 +368,36 @@ namespace BarcopoloWebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "خطا در پردازش درخواست تغییر وضعیت سفارش." });
             }
         }
+        [HttpPatch("{orderId}/assign-personnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AssignOrderPersonnel([FromRoute] long orderId, [FromBody] AssignOrderPersonnelDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("در حال اختصاص نقش‌های جدید به سفارش {OrderId} توسط کاربر {UserId}", orderId, CurrentUserId);
+                await _orderService.AssignOrderPersonnelAsync(orderId, dto, CurrentUserId);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                _logger.LogWarning("سفارش یا راننده یافت نشد هنگام اختصاص نقش: {Message}", ex.Message);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessAppException ex)
+            {
+                _logger.LogWarning("کاربر {UserId} دسترسی لازم برای اختصاص نقش به سفارش {OrderId} را ندارد: {Message}", CurrentUserId, orderId, ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطا هنگام اختصاص نقش‌ها به سفارش {OrderId} توسط کاربر {UserId}", orderId, CurrentUserId);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "خطا در پردازش درخواست اختصاص نقش." });
+            }
+        }
+
     }
 }
