@@ -35,73 +35,38 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateOrganizationDto dto)
         {
             _logger.LogInformation("Creating organization '{OrgName}' by user {UserId}", dto.Name, CurrentUserId);
-            try
-            {
-                var org = await _orgService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetById), new { id = org.Id }, org);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating organization", dto);
-            }
+            var org = await _orgService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetById), new { id = org.Id }, org);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
-            try
-            {
-                var org = await _orgService.GetByIdAsync(id, CurrentUserId);
-                return org != null ? Ok(org) : NotFound(new { message = "سازمان یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving organization", new { id });
-            }
+            var org = await _orgService.GetByIdAsync(id, CurrentUserId);
+            return org != null ? Ok(org) : NotFound(new { message = "سازمان یافت نشد" });
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var orgs = await _orgService.GetAllAsync(CurrentUserId);
-                return Ok(orgs);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving all organizations");
-            }
+            var orgs = await _orgService.GetAllAsync(CurrentUserId);
+            return Ok(orgs);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateOrganizationDto dto)
         {
             _logger.LogInformation("Updating organization {OrgId} by user {UserId}", id, CurrentUserId);
-            try
-            {
-                var updated = await _orgService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating organization", dto);
-            }
+            var updated = await _orgService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("Deleting organization {OrgId} by user {UserId}", id, CurrentUserId);
-            try
-            {
-                var result = await _orgService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { message = "سازمان یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting organization", new { id });
-            }
+            var result = await _orgService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { message = "سازمان یافت نشد" });
         }
     }
 }

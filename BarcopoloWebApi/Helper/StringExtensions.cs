@@ -16,5 +16,16 @@
                 .Replace("أ", "ا")
                 .Replace("‌", " "); // حذف نیم‌فاصله
         }
+
+        public static string MaskSensitive(this string input, int unmasked = 4, char maskChar = '*')
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            if (input.Length <= unmasked)
+                return new string(maskChar, input.Length);
+
+            return new string(maskChar, input.Length - unmasked) + input[^unmasked..];
+        }
     }
 }

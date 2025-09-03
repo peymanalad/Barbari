@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.Driver;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -257,8 +258,8 @@ public class DriverService : IDriverService
 
     public async Task<DriverDto> SelfRegisterAsync(SelfRegisterDriverDto dto)
     {
-        _logger.LogInformation("شروع ثبت‌نام راننده توسط خودش: {Phone} - {NationalCode}", dto.PhoneNumber, dto.NationalCode);
-
+        _logger.LogInformation("شروع ثبت‌نام راننده توسط خودش: {Phone} - {NationalCode}",
+            dto.PhoneNumber.MaskSensitive(), dto.NationalCode.MaskSensitive());
         // 1. بررسی وجود شخص بر اساس شماره ملی و موبایل
         var person = await _context.Persons.FirstOrDefaultAsync(p =>
             p.NationalCode == dto.NationalCode && p.PhoneNumber == dto.PhoneNumber);

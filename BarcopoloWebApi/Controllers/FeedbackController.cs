@@ -34,43 +34,22 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateFeedbackDto dto)
         {
             _logger.LogInformation("Creating feedback for OrderId {OrderId}", dto.OrderId);
-            try
-            {
-                var feedback = await _feedbackService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetByOrderId), new { orderId = feedback.OrderId }, feedback);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating feedback", dto);
-            }
+            var feedback = await _feedbackService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetByOrderId), new { orderId = feedback.OrderId }, feedback);
         }
 
         [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetByOrderId(long orderId)
         {
-            try
-            {
-                var feedback = await _feedbackService.GetByOrderIdAsync(orderId, CurrentUserId);
-                return feedback != null ? Ok(feedback) : NotFound(new { error = "Feedback not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving feedback", new { orderId });
-            }
+            var feedback = await _feedbackService.GetByOrderIdAsync(orderId, CurrentUserId);
+            return feedback != null ? Ok(feedback) : NotFound(new { error = "Feedback not found" });
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
-            try
-            {
-                var feedback = await _feedbackService.GetByIdAsync(id, CurrentUserId);
-                return Ok(feedback);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving feedback", new { id });
-            }
+            var feedback = await _feedbackService.GetByIdAsync(id, CurrentUserId);
+            return Ok(feedback);
         }
 
 
@@ -78,30 +57,16 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Update(long id, [FromBody] UpdateFeedbackDto dto)
         {
             _logger.LogInformation("Updating feedback with Id {Id}", id);
-            try
-            {
-                var updated = await _feedbackService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating feedback", dto);
-            }
+            var updated = await _feedbackService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("Deleting feedback with Id {Id}", id);
-            try
-            {
-                var result = await _feedbackService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "Feedback not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting feedback", new { id });
-            }
+            var result = await _feedbackService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "Feedback not found" });
         }
     }
 }

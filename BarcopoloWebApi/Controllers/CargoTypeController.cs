@@ -36,60 +36,32 @@ namespace BarcopoloWebApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var types = await _cargoTypeService.GetAllAsync();
-                return Ok(types);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در دریافت لیست انواع بار");
-            }
+            var types = await _cargoTypeService.GetAllAsync();
+            return Ok(types);
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCargoTypeDto dto)
         {
             _logger.LogInformation("User {UserId} creating new CargoType", CurrentUserId);
-            try
-            {
-                var result = await _cargoTypeService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در ایجاد نوع بار", dto);
-            }
+            var result = await _cargoTypeService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateCargoTypeDto dto)
         {
             _logger.LogInformation("User {UserId} updating CargoType {CargoTypeId}", CurrentUserId, id);
-            try
-            {
-                var result = await _cargoTypeService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در بروزرسانی نوع بار", dto);
-            }
+            var result = await _cargoTypeService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("User {UserId} deleting CargoType {CargoTypeId}", CurrentUserId, id);
-            try
-            {
-                var result = await _cargoTypeService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "نوع بار یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در حذف نوع بار", new { id });
-            }
+            var result = await _cargoTypeService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "نوع بار یافت نشد" });
         }
     }
 }

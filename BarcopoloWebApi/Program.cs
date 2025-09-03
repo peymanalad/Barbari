@@ -27,6 +27,8 @@ using BarcopoloWebApi.Security;
 using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Identity;
 using AutoMapper;
+using BarcopoloWebApi.Infrastructure.Middleware;
+using System.Threading.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,6 +85,27 @@ builder.Services.AddSwaggerGen(c =>
 });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("AuthPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Request.Path.ToString(),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        var result = JsonSerializer.Serialize(new { error = "تعداد درخواست‌ها بیش از حد مجاز است. لطفا بعدا دوباره تلاش کنید." });
+        await context.HttpContext.Response.WriteAsync(result, token);
+    };
+});
 
 builder.Services.AddDbContext<DataBaseContext>(options =>
     options.UseSqlServer(connectionString));
@@ -231,7 +254,11 @@ app.UseHealthChecks("/health");
 
 app.UseHttpsRedirection();
 
+app.UseRateLimiter();
+
 app.UseAuthentication();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseAuthorization();
 

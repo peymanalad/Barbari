@@ -39,17 +39,11 @@ public class FrequentAddressController : ControllerBase
         [FromQuery] long? organizationId,
         [FromQuery] long? branchId)
     {
-        try
-        {
-            var list = await _frequentAddressService.GetFrequentAddressesAsync(
-                GetCurrentUserId(), type, isForOrganization, organizationId, branchId);
-            return Ok(list);
-        }
-        catch (Exception ex)
-        {
-            return HandleError(ex, "خطا در دریافت آدرس‌های پر استفاده");
-        }
+        var list = await _frequentAddressService.GetFrequentAddressesAsync(
+            GetCurrentUserId(), type, isForOrganization, organizationId, branchId);
+        return Ok(list);
     }
+    
     private IActionResult HandleError(Exception ex, string message, object? data = null)
     {
         _logger.LogError(ex, message);

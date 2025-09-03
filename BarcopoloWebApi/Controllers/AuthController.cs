@@ -1,13 +1,16 @@
 ﻿using BarcopoloWebApi.DTOs.Auth;
+using BarcopoloWebApi.Extensions;
 using BarcopoloWebApi.Services.Auth;
 using BarcopoloWebApi.Services.Token;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BarcopoloWebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("AuthPolicy")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -30,7 +33,7 @@ namespace BarcopoloWebApi.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            _logger.LogInformation("Registration attempt for {PhoneNumber}", dto.PhoneNumber);
+            _logger.LogInformation("Registration attempt for {PhoneNumber}", dto.PhoneNumber.MaskSensitive());
             try
             {
                 var person = await _authService.RegisterAsync(dto);
@@ -57,19 +60,19 @@ namespace BarcopoloWebApi.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public IActionResult RefreshToken([FromBody] RefreshTokenDto dto)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
         {
             _logger.LogInformation("Refresh token attempt");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userToken = _tokenRepo.FindRefreshToken(dto.RefreshToken);
-            if (userToken == null || userToken.RefreshTokenExp < DateTime.UtcNow)
+            var userToken = _tokenRepo.FindRefreshTokenAsync(dto.RefreshToken);
+            if (userToken == null || userToken.Result.TokenExp < DateTime.UtcNow)
                 return Unauthorized(new { error = "توکن نامعتبر یا منقضی شده است" });
 
-            _tokenRepo.DeleteToken(dto.RefreshToken);
-            var token = await _authService.CreateToken(userToken.PersonId);
+            _tokenRepo.DeleteTokenAsync(dto.RefreshToken);
+            var token = await _authService.CreateToken(userToken.Result.PersonId);
 
             return Ok(token);
         }

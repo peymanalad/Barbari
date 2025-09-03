@@ -33,87 +33,45 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreatePaymentDto dto)
         {
             _logger.LogInformation("Creating payment for OrderId {OrderId}", dto.OrderId);
-            try
-            {
-                var payment = await _paymentService.CreateAsync(dto,CurrentUserId);
-                return CreatedAtAction(nameof(GetById), new { id = payment.Id }, payment);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating payment", dto);
-            }
+            var payment = await _paymentService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetById), new { id = payment.Id }, payment);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
-            try
-            {
-                var payment = await _paymentService.GetByIdAsync(id, CurrentUserId);
-                return payment != null ? Ok(payment) : NotFound(new { error = "Payment not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving payment", new { id });
-            }
+            var payment = await _paymentService.GetByIdAsync(id, CurrentUserId);
+            return payment != null ? Ok(payment) : NotFound(new { error = "Payment not found" });
         }
 
         [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetByOrderId(long orderId)
         {
-            try
-            {
-                var payments = await _paymentService.GetByOrderIdAsync(orderId, CurrentUserId);
-                return Ok(payments);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving payments", new { orderId });
-            }
+            var payments = await _paymentService.GetByOrderIdAsync(orderId, CurrentUserId);
+            return Ok(payments);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdatePaymentDto dto)
         {
             _logger.LogInformation("Updating payment {PaymentId}", id);
-            try
-            {
-                var updated = await _paymentService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating payment", dto);
-            }
+            var updated = await _paymentService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("Deleting payment {PaymentId}", id);
-            try
-            {
-                var result = await _paymentService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "Payment not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting payment", new { id });
-            }
+            var result = await _paymentService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "Payment not found" });
         }
 
         [HttpGet("remaining/{orderId}")]
         public async Task<IActionResult> GetRemaining(long orderId)
         {
-            try
-            {
-                var remaining = await _paymentService.GetRemainingAmountAsync(orderId, CurrentUserId);
-                return Ok(new { orderId, remainingAmount = remaining });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error calculating remaining amount", new { orderId });
-            }
+            var remaining = await _paymentService.GetRemainingAmountAsync(orderId, CurrentUserId);
+            return Ok(new { orderId, remainingAmount = remaining });
         }
     }
 }

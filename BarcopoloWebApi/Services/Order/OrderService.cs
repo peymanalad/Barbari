@@ -29,146 +29,6 @@ public class OrderService : IOrderService
         _mapper = mapper;
     }
 
-    //public async Task<OrderDto> CreateAsync(CreateOrderDto dto, long currentUserId)
-    //{
-    //    _logger.LogInformation("در حال ایجاد سفارش برای مالک {OwnerId} توسط کاربر {CurrentUserId}", dto.OwnerId, currentUserId);
-
-    //    ValidateCreateOrderDto(dto);
-
-    //    var currentUser = await _context.Persons.FindAsync(currentUserId)
-    //        ?? throw new NotFoundException("کاربر جاری یافت نشد.");
-    //    var owner = await _context.Persons.FindAsync(dto.OwnerId)
-    //        ?? throw new NotFoundException("مالک سفارش یافت نشد.");
-
-    //    if (dto.OwnerId != currentUserId && !currentUser.IsAdminOrSuperAdmin())
-    //        throw new ForbiddenAccessException("دسترسی برای ایجاد سفارش ندارید.");
-
-    //    Address originAddress;
-    //    if (dto.IsManualOrigin)
-    //    {
-    //        originAddress = new Address
-    //        {
-    //            FullAddress = dto.OriginFullAddress,
-    //            City = dto.OriginCity,
-    //            Province = dto.OriginProvince,
-    //            PostalCode = dto.OriginPostalCode,
-    //            Plate = dto.OriginPlate,
-    //            Unit = dto.OriginUnit,
-    //            Title = dto.OriginTitle,
-    //            PersonId = dto.IsForOrganization ? null : dto.OwnerId,
-    //            OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
-    //            BranchId = dto.IsForOrganization ? dto.BranchId : null
-    //        };
-    //        _context.Addresses.Add(originAddress);
-    //        await _context.SaveChangesAsync();
-
-    //        if (dto.SaveOriginAsFrequent)
-    //        {
-    //            await _frequentAddressService.InsertOrUpdateAsync(originAddress, FrequentAddressType.Origin,
-    //                dto.IsForOrganization ? null : dto.OwnerId,
-    //                dto.OrganizationId,
-    //                dto.BranchId);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        originAddress = await _context.Addresses.FindAsync(dto.OriginAddressId)
-    //            ?? throw new NotFoundException("آدرس مبدا یافت نشد.");
-    //    }
-
-    //    Address destinationAddress;
-    //    if (dto.IsManualDestination)
-    //    {
-    //        destinationAddress = new Address
-    //        {
-    //            FullAddress = dto.DestinationFullAddress,
-    //            City = dto.DestinationCity,
-    //            Province = dto.DestinationProvince,
-    //            PostalCode = dto.DestinationPostalCode,
-    //            Plate = dto.DestinationPlate,
-    //            Unit = dto.DestinationUnit,
-    //            Title = dto.DestinationTitle,
-    //            PersonId = dto.IsForOrganization ? null : dto.OwnerId,
-    //            OrganizationId = dto.IsForOrganization ? dto.OrganizationId : null,
-    //            BranchId = dto.IsForOrganization ? dto.BranchId : null
-    //        };
-    //        _context.Addresses.Add(destinationAddress);
-    //        await _context.SaveChangesAsync();
-
-    //        if (dto.SaveDestinationAsFrequent)
-    //        {
-    //            await _frequentAddressService.InsertOrUpdateAsync(destinationAddress, FrequentAddressType.Destination,
-    //                dto.IsForOrganization ? null : dto.OwnerId,
-    //                dto.OrganizationId,
-    //                dto.BranchId);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        destinationAddress = await _context.Addresses.FindAsync(dto.DestinationAddressId)
-    //            ?? throw new NotFoundException("آدرس مقصد یافت نشد.");
-    //    }
-
-    //    var trackingNumber = GenerateTrackingNumber();
-
-    //    var order = new Order
-    //    {
-    //        OwnerId = dto.OwnerId,
-    //        OrganizationId = dto.OrganizationId,
-    //        BranchId = dto.BranchId,
-    //        OriginAddressId = originAddress.Id,
-    //        DestinationAddress = destinationAddress.FullAddress,
-    //        CreatedAt = DateTime.UtcNow,
-    //        Status = OrderStatus.Pending,
-    //        TrackingNumber = trackingNumber,
-    //        Fare = dto.Fare,
-    //        Insurance = dto.Insurance,
-    //        Vat = dto.Vat,
-    //        DeclaredValue = dto.DeclaredValue,
-    //        IsInsuranceRequested = dto.IsInsuranceRequested,
-    //        SenderName = dto.SenderName,
-    //        SenderPhone = dto.SenderPhone,
-    //        ReceiverName = dto.ReceiverName,
-    //        ReceiverPhone = dto.ReceiverPhone,
-    //        OrderDescription = dto.Details,
-    //        LoadingTime = dto.LoadingTime
-    //    };
-
-    //    _context.Orders.Add(order);
-    //    await _context.SaveChangesAsync();
-    //    _logger.LogInformation("سفارش با کد پیگیری {TrackingNumber} ایجاد شد", trackingNumber);
-
-    //    var unassignedCargos = await _context.Cargos
-    //        .Where(c => c.OwnerId == dto.OwnerId && c.OrderId == null)
-    //        .ToListAsync();
-
-    //    foreach (var cargo in unassignedCargos)
-    //        cargo.OrderId = order.Id;
-
-    //    var initialEvent = new OrderEvent
-    //    {
-    //        OrderId = order.Id,
-    //        Status = OrderStatus.Pending,
-    //        ChangedByPersonId = currentUserId,
-    //        Remarks = "سفارش ایجاد شد."
-    //    };
-    //    _context.OrderEvents.Add(initialEvent);
-
-    //    await _context.SaveChangesAsync();
-    //    _logger.LogInformation("سفارش {OrderId} با {CargoCount} بار ثبت و رویداد اولیه ایجاد شد", order.Id, unassignedCargos.Count);
-
-    //    var result = await _context.Orders
-    //        .Include(o => o.OriginAddress)
-    //        .Include(o => o.Warehouse)
-    //        .Include(o => o.Organization)
-    //        .Include(o => o.Cargos)
-    //            .ThenInclude(c => c.Images)
-    //        .Include(o => o.Payments)
-    //        .Include(o => o.Events)
-    //        .FirstOrDefaultAsync(o => o.Id == order.Id);
-
-    //    return _mapper.Map<OrderDto>(result);
-    //}
     public async Task<OrderDto> CreateAsync(CreateOrderDto dto, long currentUserId)
     {
         _logger.LogInformation("شروع ایجاد سفارش توسط کاربر {UserId} برای مالک {OwnerId}", currentUserId, dto.OwnerId);
@@ -221,7 +81,6 @@ public class OrderService : IOrderService
             }
         }
 
-        // === ساخت آدرس مبدا ===
         Address originAddress;
 
         if (dto.OriginAddressId.HasValue)
@@ -245,7 +104,6 @@ public class OrderService : IOrderService
             _context.Addresses.Add(originAddress);
             await _context.SaveChangesAsync();
 
-            // افزایش استفاده
             freq.UsageCount++;
             freq.LastUsed = DateTime.UtcNow;
         }
@@ -285,7 +143,6 @@ public class OrderService : IOrderService
             throw new AppException("اطلاعات آدرس مبدا ناقص است.");
         }
 
-        // === ساخت آدرس مقصد ===
         Address destinationAddress;
 
         if (dto.DestinationAddressId.HasValue)
@@ -355,7 +212,6 @@ public class OrderService : IOrderService
         if (!unassignedCargos.Any())
             throw new AppException("برای ثبت سفارش، ابتدا باید حداقل یک 'بار' ثبت شود.");
 
-        // === ایجاد سفارش ===
         var order = new Order
         {
             OwnerId = dto.OwnerId,
@@ -571,7 +427,6 @@ public class OrderService : IOrderService
         }
         else
         {
-            // کاربر عادی بدون عضویت → فقط سفارش‌های خودش
             query = _context.Orders
                 .Where(o => o.OwnerId == currentUserId);
         }
@@ -778,7 +633,6 @@ public class OrderService : IOrderService
             var currentStatus = order.Status;
             var newStatus = dto.NewStatus;
 
-            // جلوگیری از بازگشت وضعیت
             if ((int)newStatus < (int)currentStatus && !isPrivileged)
             {
                 _logger.LogWarning("کاربر {UserId} تلاش کرد وضعیت سفارش {OrderId} را از {CurrentStatus} به {NewStatus} برگرداند.", currentUserId, orderId, currentStatus, newStatus);
@@ -791,7 +645,6 @@ public class OrderService : IOrderService
                 return;
             }
 
-            // بررسی مجوز تغییر وضعیت طبق نقش و وضعیت فعلی
             if (!isPrivileged)
             {
                 if (isDriver)
@@ -810,7 +663,6 @@ public class OrderService : IOrderService
                 }
             }
 
-            // فقط مدیران می‌توانند پس از Assigned، سفارش را Cancel کنند
             if (newStatus == OrderStatus.Cancelled && (int)currentStatus >= (int)OrderStatus.Assigned && !isPrivileged)
             {
                 throw new UnauthorizedAccessAppException("شما مجاز به لغو سفارش در این وضعیت نیستید.");
@@ -907,20 +759,6 @@ public class OrderService : IOrderService
         if (string.IsNullOrWhiteSpace(dto.ReceiverName)) errors.Add("نام گیرنده الزامی است.");
         if (string.IsNullOrWhiteSpace(dto.ReceiverPhone)) errors.Add("شماره گیرنده الزامی است.");
 
-        //if (dto.IsManualDestination)
-        //{ 
-        //    if (string.IsNullOrWhiteSpace(dto.DestinationFullAddress)) errors.Add("آدرس کامل مقصد الزامی است.");
-        //    if (string.IsNullOrWhiteSpace(dto.DestinationCity)) errors.Add("شهر مقصد الزامی است.");
-        //    if (string.IsNullOrWhiteSpace(dto.DestinationProvince)) errors.Add("استان مقصد الزامی است.");
-        //}
-        //else
-        //{
-
-        //    if (string.IsNullOrWhiteSpace(dto.DestinationFullAddress)) errors.Add("آدرس کامل مقصد الزامی است.");
-        //    if (string.IsNullOrWhiteSpace(dto.DestinationCity)) errors.Add("شهر مقصد الزامی است.");
-        //    if (string.IsNullOrWhiteSpace(dto.DestinationProvince)) errors.Add("استان مقصد الزامی است.");
-        //}
-
 
         if (dto.IsForOrganization)
         {
@@ -928,7 +766,6 @@ public class OrderService : IOrderService
                 errors.Add("برای سفارش سازمانی، شناسه سازمان الزامی است.");
             else
             {
-                // Further check if BranchId belongs to OrgId could be done here or later
             }
 
             if (dto.IsManualOrigin)
@@ -967,11 +804,9 @@ public class OrderService : IOrderService
     }
     private async Task<(string Address, string Title)> GetOrganizationOriginAddressStringAsync(long? organizationId, long? branchId)
     {
-        // Prioritize BranchId if provided
         if (branchId.HasValue)
         {
             var branch = await _context.SubOrganizations
-                // Ensure branch belongs to the specified OrgId if also provided
                 .FirstOrDefaultAsync(b => b.Id == branchId.Value && (!organizationId.HasValue || b.OrganizationId == organizationId.Value));
 
             if (branch == null) throw new NotFoundException($"شعبه با شناسه {branchId.Value} یافت نشد یا به سازمان مشخص شده تعلق ندارد.");
@@ -990,21 +825,17 @@ public class OrderService : IOrderService
         }
         else
         {
-            // This case should be caught by ValidateCreateOrderDto earlier
             throw new BadRequestException("شناسه سازمان یا شعبه برای دریافت آدرس مبدا سازمانی الزامی است.");
         }
     }
     private async Task<bool> CanUserModifyOrderAsync(Order order, Person currentUser)
     {
-        // Admins and Monitors always have access
         if (currentUser.IsAdminOrSuperAdminOrMonitor())
             return true;
 
-        // The owner of the order can update it
         if (order.OwnerId == currentUser.Id)
             return true;
 
-        // If the order is organization-related, validate organization memberships
         if (order.OrganizationId.HasValue)
         {
             var orgId = order.OrganizationId.Value;
@@ -1015,11 +846,9 @@ public class OrderService : IOrderService
                 if (membership.OrganizationId != orgId)
                     continue;
 
-                // Org Admin can update any order in their organization
                 if (membership.Role == SystemRole.orgadmin && membership.BranchId == null)
                     return true;
 
-                // Branch Admin can update orders in their branch
                 if (membership.Role == SystemRole.branchadmin && membership.BranchId == branchId)
                     return true;
             }

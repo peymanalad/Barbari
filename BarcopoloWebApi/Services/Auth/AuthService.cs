@@ -2,6 +2,7 @@
 using BarcopoloWebApi.DTOs.Auth;
 using BarcopoloWebApi.DTOs.Token;
 using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Extensions;
 using BarcopoloWebApi.Services.Token;
 using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Http;
@@ -46,7 +47,7 @@ namespace BarcopoloWebApi.Services.Auth
 
         public async Task<LoginResultDto> RegisterAsync(RegisterDto dto)
         {
-            _logger.LogInformation("Registering user {Phone}", dto.PhoneNumber);
+            _logger.LogInformation("Registering user {Phone}", dto.PhoneNumber.MaskSensitive());
 
             if (await _context.Persons.AnyAsync(p => p.PhoneNumber == dto.PhoneNumber))
                 throw new Exception("شماره موبایل قبلاً ثبت شده است.");
@@ -83,7 +84,7 @@ namespace BarcopoloWebApi.Services.Auth
 
         public async Task<LoginResultDto> LoginAsync(LoginDto dto)
         {
-            _logger.LogInformation("Login attempt for {Phone}", dto.PhoneNumber);
+            _logger.LogInformation("Login attempt for {Phone}", dto.PhoneNumber.MaskSensitive());
 
             var person = await _context.Persons.FirstOrDefaultAsync(p => p.PhoneNumber == dto.PhoneNumber);
             if (person == null)

@@ -34,90 +34,54 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateBargirDto dto)
         {
             _logger.LogInformation("Creating new Bargir");
-            try
-            {
-                var bargir = await _bargirService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetById), new { id = bargir.Id }, bargir);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating Bargir", dto);
-            }
+
+            var bargir = await _bargirService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetById), new { id = bargir.Id }, bargir);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
             _logger.LogInformation("Getting Bargir with id {Id}", id);
-            try
-            {
-                var bargir = await _bargirService.GetByIdAsync(id, CurrentUserId);
-                return bargir != null ? Ok(bargir) : NotFound(new { error = "Bargir not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving Bargir", new { id });
-            }
+
+            var bargir = await _bargirService.GetByIdAsync(id, CurrentUserId);
+            return bargir != null ? Ok(bargir) : NotFound(new { error = "Bargir not found" });
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             _logger.LogInformation("Fetching all Bargirs");
-            try
-            {
-                var bargeers = await _bargirService.GetAllAsync(CurrentUserId);
-                return Ok(bargeers);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error fetching Bargirs");
-            }
+
+            var bargeers = await _bargirService.GetAllAsync(CurrentUserId);
+            return Ok(bargeers);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateBargirDto dto)
         {
             _logger.LogInformation("Updating Bargir with id {Id}", id);
-            try
-            {
-                var updated = await _bargirService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating Bargir", dto);
-            }
+
+            var updated = await _bargirService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("Deleting Bargir with id {Id}", id);
-            try
-            {
-                var result = await _bargirService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "Bargir not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting Bargir", new { id });
-            }
+
+            var result = await _bargirService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "Bargir not found" });
         }
 
         [HttpPost("assign")]
         public async Task<IActionResult> AssignToVehicle([FromQuery] long bargirId, [FromQuery] long vehicleId)
         {
             _logger.LogInformation("Assigning Bargir {BargirId} to vehicle {VehicleId}", bargirId, vehicleId);
-            try
-            {
-                await _bargirService.AssignToVehicleAsync(bargirId, vehicleId, CurrentUserId);
-                return Ok(new { message = "Bargir assigned to vehicle successfully." });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error assigning Bargir to vehicle", new { bargirId, vehicleId });
-            }
+
+            await _bargirService.AssignToVehicleAsync(bargirId, vehicleId, CurrentUserId);
+            return Ok(new { message = "Bargir assigned to vehicle successfully." });
         }
     }
 }

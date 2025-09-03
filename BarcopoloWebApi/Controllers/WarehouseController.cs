@@ -34,73 +34,38 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
         {
             _logger.LogInformation("User {UserId} creating warehouse '{Name}'", CurrentUserId, dto.WarehouseName);
-            try
-            {
-                var warehouse = await _warehouseService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetById), new { id = warehouse.Id }, warehouse);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating warehouse", dto);
-            }
+            var warehouse = await _warehouseService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetById), new { id = warehouse.Id }, warehouse);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
-            try
-            {
-                var warehouse = await _warehouseService.GetByIdAsync(id, CurrentUserId);
-                return warehouse != null ? Ok(warehouse) : NotFound(new { error = "Warehouse not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving warehouse", new { id });
-            }
+            var warehouse = await _warehouseService.GetByIdAsync(id, CurrentUserId);
+            return warehouse != null ? Ok(warehouse) : NotFound(new { error = "Warehouse not found" });
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var warehouses = await _warehouseService.GetAllAsync(CurrentUserId);
-                return Ok(warehouses);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving warehouses");
-            }
+            var warehouses = await _warehouseService.GetAllAsync(CurrentUserId);
+            return Ok(warehouses);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateWarehouseDto dto)
         {
             _logger.LogInformation("User {UserId} updating warehouse {WarehouseId}", CurrentUserId, id);
-            try
-            {
-                var warehouse = await _warehouseService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(warehouse);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating warehouse", dto);
-            }
+            var warehouse = await _warehouseService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(warehouse);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("User {UserId} deleting warehouse {WarehouseId}", CurrentUserId, id);
-            try
-            {
-                var result = await _warehouseService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "Warehouse not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting warehouse", new { id });
-            }
+            var result = await _warehouseService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "Warehouse not found" });
         }
     }
 }

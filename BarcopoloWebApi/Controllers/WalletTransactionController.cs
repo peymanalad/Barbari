@@ -34,16 +34,8 @@ namespace BarcopoloWebApi.Controllers
         {
             _logger.LogInformation("دریافت لیست تراکنش‌ها برای کیف پول {WalletId} توسط کاربر {UserId}", walletId, CurrentUserId);
 
-            try
-            {
-                var transactions = await _walletService.GetTransactionsAsync(walletId, filter, CurrentUserId);
-                return Ok(transactions);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "خطا در دریافت تراکنش‌های کیف پول {WalletId}", walletId);
-                return BadRequest(new { error = ex.Message });
-            }
+            var transactions = await _walletService.GetTransactionsAsync(walletId, filter, CurrentUserId);
+            return Ok(transactions);
         }
     }
 }

@@ -36,58 +36,30 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> AssignVehicle([FromQuery] long warehouseId, [FromQuery] long vehicleId)
         {
             _logger.LogInformation("Assigning vehicle {VehicleId} to warehouse {WarehouseId} by user {UserId}", vehicleId, warehouseId, CurrentUserId);
-            try
-            {
-                await _warehouseVehicleService.AssignVehicleToWarehouse(warehouseId, vehicleId, CurrentUserId);
-                return Ok(new { message = "Vehicle assigned to warehouse successfully." });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error assigning vehicle to warehouse");
-            }
+            await _warehouseVehicleService.AssignVehicleToWarehouse(warehouseId, vehicleId, CurrentUserId);
+            return Ok(new { message = "Vehicle assigned to warehouse successfully." });
         }
 
         [HttpDelete("remove")]
         public async Task<IActionResult> RemoveVehicle([FromQuery] long warehouseId, [FromQuery] long vehicleId)
         {
             _logger.LogInformation("Removing vehicle {VehicleId} from warehouse {WarehouseId}", vehicleId, warehouseId);
-            try
-            {
-                var result = await _warehouseVehicleService.RemoveVehicleFromWarehouse(warehouseId, vehicleId, CurrentUserId);
-                return result ? Ok(new { message = "Vehicle removed." }) : NotFound(new { error = "Assignment not found." });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error removing vehicle from warehouse");
-            }
+            var result = await _warehouseVehicleService.RemoveVehicleFromWarehouse(warehouseId, vehicleId, CurrentUserId);
+            return result ? Ok(new { message = "Vehicle removed." }) : NotFound(new { error = "Assignment not found." });
         }
 
         [HttpGet("warehouse/{warehouseId}")]
         public async Task<IActionResult> GetVehiclesByWarehouse(long warehouseId)
         {
-            try
-            {
-                var vehicles = await _warehouseVehicleService.GetVehiclesByWarehouse(warehouseId, CurrentUserId);
-                return Ok(vehicles);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving vehicles in warehouse");
-            }
+            var vehicles = await _warehouseVehicleService.GetVehiclesByWarehouse(warehouseId, CurrentUserId);
+            return Ok(vehicles);
         }
 
         [HttpGet("unassigned")]
         public async Task<IActionResult> GetUnassignedVehicles([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            try
-            {
-                var vehicles = await _warehouseVehicleService.GetUnassignedVehicles(CurrentUserId,page,pageSize);
-                return Ok(vehicles);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving unassigned vehicles");
-            }
+            var vehicles = await _warehouseVehicleService.GetUnassignedVehicles(CurrentUserId, page, pageSize);
+            return Ok(vehicles);
         }
 
 

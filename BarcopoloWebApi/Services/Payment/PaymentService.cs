@@ -1,6 +1,7 @@
 ﻿using BarcopoloWebApi.Data;
 using BarcopoloWebApi.DTOs.Payment;
 using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.Services;
 using Microsoft.EntityFrameworkCore;
 

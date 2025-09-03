@@ -34,103 +34,54 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             _logger.LogInformation("User {UserId} requested person list", CurrentUserId);
-            try
-            {
-                var persons = await _personService.GetAllAsync(CurrentUserId);
-                return Ok(persons);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving person list");
-            }
+            var persons = await _personService.GetAllAsync(CurrentUserId);
+            return Ok(persons);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
             _logger.LogInformation("User {UserId} requested person {PersonId}", CurrentUserId, id);
-            try
-            {
-                var person = await _personService.GetByIdAsync(id, CurrentUserId);
-                return person != null ? Ok(person) : NotFound(new { error = "شخص مورد نظر یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving person", new { id });
-            }
+            var person = await _personService.GetByIdAsync(id, CurrentUserId);
+            return person != null ? Ok(person) : NotFound(new { error = "شخص مورد نظر یافت نشد" });
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePersonDto dto)
         {
             _logger.LogInformation("Creating new person by user {UserId}", CurrentUserId);
-            try
-            {
-                var person = await _personService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetById), new { id = person.Id }, person);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating person", dto);
-            }
+            var person = await _personService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetById), new { id = person.Id }, person);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdatePersonDto dto)
         {
             _logger.LogInformation("Updating person {PersonId} by user {UserId}", id, CurrentUserId);
-            try
-            {
-                var person = await _personService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(person);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating person", dto);
-            }
+            var person = await _personService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(person);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("Deleting person {PersonId} by user {UserId}", id, CurrentUserId);
-            try
-            {
-                var result = await _personService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "شخص مورد نظر برای حذف یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting person", new { id });
-            }
+            var result = await _personService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "شخص مورد نظر برای حذف یافت نشد" });
         }
         [HttpPut("{id}/activate")]
         public async Task<IActionResult> Activate(long id)
         {
             _logger.LogInformation("Activating person {PersonId} by user {UserId}", id, CurrentUserId);
-            try
-            {
-                var result = await _personService.ActivateAsync(id, CurrentUserId);
-                return result ? Ok(new { success = true }) : NotFound(new { error = "شخص مورد نظر برای فعال‌سازی یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error activating person", new { id });
-            }
+            var result = await _personService.ActivateAsync(id, CurrentUserId);
+            return result ? Ok(new { success = true }) : NotFound(new { error = "شخص مورد نظر برای فعال‌سازی یافت نشد" });
         }
 
         [HttpPost("check-existence")]
         public async Task<IActionResult> CheckExistenceByNationalCodeAsync([FromBody] PersonExistenceRequestDto dto)
         {
-            try
-            {
-                var result = await _personService.CheckExistenceByNationalCodeAsync(dto, CurrentUserId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در بررسی وجود شخص");
-            }
+            var result = await _personService.CheckExistenceByNationalCodeAsync(dto, CurrentUserId);
+            return Ok(result);
         }
 
         

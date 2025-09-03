@@ -36,45 +36,24 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> GetAll(long organizationId)
         {
             _logger.LogInformation("User {UserId} fetching cargo types for organization {OrgId}", CurrentUserId, organizationId);
-            try
-            {
-                var list = await _service.GetAllAsync(organizationId, CurrentUserId);
-                return Ok(list);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving cargo types", new { organizationId });
-            }
+            var list = await _service.GetAllAsync(organizationId, CurrentUserId);
+            return Ok(list);
         }
 
         [HttpPost("{organizationId}")]
         public async Task<IActionResult> Add(long organizationId, [FromBody] CreateOrganizationCargoTypeDto dto)
         {
             _logger.LogInformation("User {UserId} adding cargo type to organization {OrgId}", CurrentUserId, organizationId);
-            try
-            {
-                var result = await _service.AddAsync(organizationId, dto, CurrentUserId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error adding cargo type", dto);
-            }
+            var result = await _service.AddAsync(organizationId, dto, CurrentUserId);
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
             _logger.LogInformation("User {UserId} deleting organization cargo type {Id}", CurrentUserId, id);
-            try
-            {
-                var result = await _service.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "نوع بار سازمانی یافت نشد" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting cargo type", new { id });
-            }
+            var result = await _service.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "نوع بار سازمانی یافت نشد" });
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using BarcopoloWebApi.DTOs.Driver;
 using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Extensions;
 using BarcopoloWebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,101 +36,52 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateDriverDto driver)
         {
             _logger.LogInformation("Creating driver for person {PersonId}", driver.PersonId);
-            try
-            {
-                var created = await _driverService.CreateAsync(driver, CurrentUserId);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating driver", driver);
-            }
+            var created = await _driverService.CreateAsync(driver, CurrentUserId);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateDriverDto dto)
         {
-            try
-            {
-                var updated = await _driverService.UpdateAsync(id, dto, CurrentUserId);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error updating driver", new { id, dto });
-            }
+            var updated = await _driverService.UpdateAsync(id, dto, CurrentUserId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
-            try
-            {
-                var result = await _driverService.DeleteAsync(id, CurrentUserId);
-                return result ? NoContent() : NotFound(new { error = "Driver not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error deleting driver", new { id });
-            }
+            var result = await _driverService.DeleteAsync(id, CurrentUserId);
+            return result ? NoContent() : NotFound(new { error = "Driver not found" });
         }
 
         [HttpPost("assign")]
         public async Task<IActionResult> AssignToVehicle([FromQuery] long driverId, [FromQuery] long vehicleId)
         {
             _logger.LogInformation("Assigning driver {DriverId} to vehicle {VehicleId}", driverId, vehicleId);
-            try
-            {
-                await _driverService.AssignToVehicleAsync(driverId, vehicleId, CurrentUserId);
-                return Ok(new { message = "Driver assigned to vehicle successfully." });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error assigning driver to vehicle", new { driverId, vehicleId });
-            }
+            await _driverService.AssignToVehicleAsync(driverId, vehicleId, CurrentUserId);
+            return Ok(new { message = "Driver assigned to vehicle successfully." });
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
-            try
-            {
-                var driver = await _driverService.GetByIdAsync(id, CurrentUserId);
-                return driver != null ? Ok(driver) : NotFound(new { error = "Driver not found" });
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving driver", new { id });
-            }
+            var driver = await _driverService.GetByIdAsync(id, CurrentUserId);
+            return driver != null ? Ok(driver) : NotFound(new { error = "Driver not found" });
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var drivers = await _driverService.GetAllAsync(CurrentUserId);
-                return Ok(drivers);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving drivers");
-            }
+            var drivers = await _driverService.GetAllAsync(CurrentUserId);
+            return Ok(drivers);
         }
         [AllowAnonymous]
         [HttpPost("self-register")]
         public async Task<IActionResult> SelfRegister([FromBody] SelfRegisterDriverDto dto)
         {
-            _logger.LogInformation("Self-register driver attempt for {Phone}", dto.PhoneNumber);
-            try
-            {
-                var result = await _driverService.SelfRegisterAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در ثبت‌نام راننده", dto);
-            }
+            _logger.LogInformation("Self-register driver attempt for {Phone}", dto.PhoneNumber.MaskSensitive());
+            var result = await _driverService.SelfRegisterAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
     }

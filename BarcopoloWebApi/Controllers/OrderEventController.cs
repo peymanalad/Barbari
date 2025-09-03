@@ -34,29 +34,15 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateOrderEventDto dto)
         {
             _logger.LogInformation("User {UserId} adding event to order {OrderId}", CurrentUserId, dto.OrderId);
-            try
-            {
-                var orderEvent = await _orderEventService.CreateAsync(dto, CurrentUserId);
-                return CreatedAtAction(nameof(GetByOrderId), new { orderId = orderEvent.OrderId }, orderEvent);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error creating order event", dto);
-            }
+            var orderEvent = await _orderEventService.CreateAsync(dto, CurrentUserId);
+            return CreatedAtAction(nameof(GetByOrderId), new { orderId = orderEvent.OrderId }, orderEvent);
         }
 
         [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetByOrderId(long orderId)
         {
-            try
-            {
-                var events = await _orderEventService.GetByOrderIdAsync(orderId, CurrentUserId);
-                return Ok(events);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "Error retrieving order events", new { orderId });
-            }
+            var events = await _orderEventService.GetByOrderIdAsync(orderId, CurrentUserId);
+            return Ok(events);
         }
     }
 }

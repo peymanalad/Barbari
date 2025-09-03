@@ -39,15 +39,8 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateWithdrawalRequestDto dto)
         {
             _logger.LogInformation("درخواست برداشت توسط کاربر {UserId}", CurrentUserId);
-            try
-            {
-                var result = await _withdrawalService.CreateAsync(dto, CurrentUserId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در ثبت درخواست برداشت");
-            }
+            var result = await _withdrawalService.CreateAsync(dto, CurrentUserId);
+            return Ok(result);
         }
 
         [HttpPost("review/{id}")]
@@ -55,29 +48,15 @@ namespace BarcopoloWebApi.Controllers
         public async Task<IActionResult> Review(long id, [FromBody] WithdrawalReviewDto dto)
         {
             _logger.LogInformation("بررسی درخواست برداشت {RequestId} توسط کاربر {UserId}", id, CurrentUserId);
-            try
-            {
-                var result = await _withdrawalService.ReviewAsync(id, dto, CurrentUserId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در بررسی درخواست برداشت");
-            }
+            var result = await _withdrawalService.ReviewAsync(id, dto, CurrentUserId);
+            return Ok(result);
         }
 
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            try
-            {
-                var results = await _withdrawalService.GetRequestsAsync(CurrentUserId);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                return HandleError(ex, "خطا در دریافت درخواست‌های برداشت");
-            }
+            var results = await _withdrawalService.GetRequestsAsync(CurrentUserId);
+            return Ok(results);
         }
     }
 }
