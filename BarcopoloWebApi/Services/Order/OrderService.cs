@@ -212,6 +212,10 @@ public class OrderService : IOrderService
         if (!unassignedCargos.Any())
             throw new AppException("برای ثبت سفارش، ابتدا باید حداقل یک 'بار' ثبت شود.");
 
+        var trackingNumber = GenerateTrackingNumber();
+        if (await _context.Orders.AnyAsync(o => o.TrackingNumber == trackingNumber))
+            throw new AppException("کد پیگیری تکراری است.");
+
         var order = new Order
         {
             OwnerId = dto.OwnerId,
@@ -221,7 +225,7 @@ public class OrderService : IOrderService
             DestinationAddress = destinationAddress.FullAddress,
             CreatedAt = DateTime.UtcNow,
             Status = OrderStatus.Pending,
-            TrackingNumber = GenerateTrackingNumber(),
+            TrackingNumber = trackingNumber,
             Fare = dto.Fare,
             Insurance = dto.Insurance,
             Vat = dto.Vat,

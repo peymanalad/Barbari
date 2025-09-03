@@ -100,8 +100,15 @@ namespace BarcopoloWebApi.Services.WalletManagement
                 _context.WalletTransactions.Add(tx);
             }
 
-            await _context.SaveChangesAsync();
-
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "خطای همزمانی هنگام بررسی درخواست برداشت {RequestId}", requestId);
+                throw new InvalidOperationException("تغییرات کیف پول اعمال نشد، لطفاً مجدداً تلاش کنید.");
+            }
             _logger.LogInformation("درخواست برداشت با موفقیت بررسی شد. وضعیت: {Status}", request.Status);
 
             return new WithdrawalRequestDto

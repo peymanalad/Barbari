@@ -116,8 +116,15 @@ namespace BarcopoloWebApi.Services.WalletManagement
             };
 
             _context.WalletTransactions.Add(transaction);
-            await _context.SaveChangesAsync();
-
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "خطای همزمانی هنگام شارژ کیف پول {WalletId}", wallet.Id);
+                throw new InvalidOperationException("تغییرات کیف پول اعمال نشد، لطفاً مجدداً تلاش کنید.");
+            }
             _logger.LogInformation("کیف پول {WalletId} با مبلغ {Amount} توسط کاربر {UserId} شارژ شد.", wallet.Id, dto.Amount, currentUserId);
         }
         public async Task<bool> HasSufficientBalanceAsync(long walletId, decimal amount, long currentUserId)
@@ -185,8 +192,15 @@ namespace BarcopoloWebApi.Services.WalletManagement
             };
 
             _context.WalletTransactions.Add(transaction);
-            await _context.SaveChangesAsync();
-
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "خطای همزمانی هنگام پرداخت با کیف پول {WalletId}", wallet.Id);
+                throw new InvalidOperationException("تغییرات کیف پول اعمال نشد، لطفاً مجدداً تلاش کنید.");
+            }
             _logger.LogInformation("پرداخت با کیف پول با موفقیت انجام شد. WalletId={WalletId}, OrderId={OrderId}, Amount={Amount}",
                 wallet.Id, order.Id, amount);
         }

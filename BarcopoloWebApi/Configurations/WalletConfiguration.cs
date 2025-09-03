@@ -28,5 +28,6 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
         builder.HasIndex(w => new { w.OwnerType, w.OwnerId }).IsUnique();
         builder.Property(w => w.Balance).HasPrecision(18, 2);
+        builder.Property(w => w.RowVersion).IsRowVersion();
     }
 }
