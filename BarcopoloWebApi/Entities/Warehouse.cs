@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace BarcopoloWebApi.Entities
@@ -21,6 +22,7 @@ namespace BarcopoloWebApi.Entities
         public decimal ManagerPercentage { get; set; }
 
         [Range(0, double.MaxValue)]
+        [Column(TypeName = "decimal(18,0)")]
         public decimal Rent { get; set; }
 
         [Range(0, 100)]
@@ -42,12 +44,15 @@ namespace BarcopoloWebApi.Entities
         public decimal DriverPaymentPercentage { get; set; }
 
         [Range(0, double.MaxValue)]
+        [Column(TypeName = "decimal(18,0)")]
         public decimal InsuranceAmount { get; set; }
 
         [Range(0, double.MaxValue)]
+        [Column(TypeName = "decimal(18,0)")]
         public decimal PerCargoInsurance { get; set; }
 
         [Range(0, double.MaxValue)]
+        [Column(TypeName = "decimal(18,0)")]
         public decimal ReceiptIssuingCost { get; set; }
 
         [MaxLength(1000)]

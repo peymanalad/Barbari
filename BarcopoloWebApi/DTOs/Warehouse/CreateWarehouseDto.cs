@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace BarcopoloWebApi.DTOs.Warehouse
 {
@@ -15,9 +17,11 @@ namespace BarcopoloWebApi.DTOs.Warehouse
         public string InternalTelephone { get; set; }
 
         public decimal ManagerPercentage { get; set; }
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Rent { get; set; }
         public decimal TerminalPercentage { get; set; }
         public decimal VatPercentage { get; set; }
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal InsuranceAmount { get; set; }
 
         public string? PrintText { get; set; }

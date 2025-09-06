@@ -195,6 +195,18 @@ namespace BarcopoloWebApi.Services.WalletManagement
             try
             {
                 await _context.SaveChangesAsync();
+
+                var payment = new Payment
+                {
+                    OrderId = order.Id,
+                    PaymentMethod = PaymentMethodType.Wallet,
+                    Amount = amount,
+                    PaymentDate = DateTime.UtcNow,
+                    TransactionId = Guid.NewGuid().ToString()
+                };
+
+                _context.Payments.Add(payment);
+                await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException ex)
             {

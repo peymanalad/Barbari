@@ -1,4 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.ComponentModel.DataAnnotations;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using BarcopoloWebApi.Helper;
 
 public class UpdateOrderDto
 {
@@ -21,6 +26,7 @@ public class UpdateOrderDto
     public DateTime? LoadingTime { get; set; }
 
     [Range(0, double.MaxValue)]
+    [JsonConverter(typeof(CurrencyDecimalConverter))]
     public decimal? DeclaredValue { get; set; } = 0;
     public bool? IsInsuranceRequested { get; set; } = false;
 }

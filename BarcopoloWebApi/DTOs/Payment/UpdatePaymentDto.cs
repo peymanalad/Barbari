@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.DTOs.Payment
 {
@@ -9,6 +11,7 @@ namespace BarcopoloWebApi.DTOs.Payment
         public PaymentMethodType? PaymentType { get; set; }
 
         [Range(1000, 1_000_000_000, ErrorMessage = "مبلغ باید معتبر باشد.")]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal? Amount { get; set; }
 
         [MaxLength(100)]

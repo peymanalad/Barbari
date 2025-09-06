@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.DTOs.Order
 {
@@ -56,14 +59,18 @@ namespace BarcopoloWebApi.DTOs.Order
         public long? BranchId { get; set; }
 
         [Range(0, double.MaxValue)]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal DeclaredValue { get; set; } = 0;
         public bool IsInsuranceRequested { get; set; } = false;
 
         [Range(0, double.MaxValue)]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Fare { get; set; }
         [Range(0, double.MaxValue)]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Insurance { get; set; }
         [Range(0, double.MaxValue)]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Vat { get; set; }
 
         public DateTime? LoadingTime { get; set; }

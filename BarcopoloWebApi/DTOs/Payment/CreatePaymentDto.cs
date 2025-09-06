@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using BarcopoloWebApi.Enums;
+using System.Text.Json.Serialization;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.DTOs.Payment
 {
@@ -12,7 +14,8 @@ namespace BarcopoloWebApi.DTOs.Payment
         public PaymentMethodType PaymentType { get; set; }
 
         [Required(ErrorMessage = "مبلغ پرداخت الزامی است.")]
-        [Range(1000, 1_000_000_000, ErrorMessage = "مبلغ باید بیشتر از ۱۰۰۰ تومان باشد.")]
+        [Range(1000, 1_000_000_000, ErrorMessage = "مبلغ باید بیشتر از ۱۰۰۰ ریال باشد.")]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Amount { get; set; }
 
         public DateTime? PaymentDate { get; set; } = DateTime.UtcNow;

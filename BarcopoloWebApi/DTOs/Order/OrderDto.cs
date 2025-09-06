@@ -28,6 +28,7 @@ namespace BarcopoloWebApi.DTOs.Order
         [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Vat { get; set; }
 
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal TotalCost => Fare + Insurance + Vat;
 
         public DateTime? LoadingTime { get; set; }

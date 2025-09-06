@@ -43,6 +43,7 @@ namespace BarcopoloWebApi.Entities
 
         [MaxLength(1000)]
         public string Description { get; set; }
+        [Column(TypeName = "decimal(18,0)")]
         public decimal? Value { get; set; }
 
 

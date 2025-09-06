@@ -1,6 +1,7 @@
 ﻿using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 public class Wallet
 {
@@ -9,6 +10,7 @@ public class Wallet
     public WalletOwnerType OwnerType { get; set; }
     public long OwnerId { get; set; }
 
+    [Column(TypeName = "decimal(18,0)")]
     public decimal Balance { get; set; }
 
     public virtual ICollection<WalletTransaction> Transactions { get; set; }

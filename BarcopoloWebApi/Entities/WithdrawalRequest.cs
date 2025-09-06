@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using BarcopoloWebApi.Enums;
 
 namespace BarcopoloWebApi.Entities
@@ -12,6 +13,7 @@ namespace BarcopoloWebApi.Entities
 
         [Required]
         [Range(1000, double.MaxValue)]
+        [Column(TypeName = "decimal(18,0)")]
         public decimal Amount { get; set; }
 
         [Required]

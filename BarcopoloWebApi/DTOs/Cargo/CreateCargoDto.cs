@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.DTOs.Cargo
 {
@@ -16,6 +19,7 @@ namespace BarcopoloWebApi.DTOs.Cargo
         public string? Contents { get; set; }
 
         [Range(0, 1000000000, ErrorMessage = "مقدار بار معتبر نیست")]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Value { get; set; }
 
         [Range(0, 9999)]

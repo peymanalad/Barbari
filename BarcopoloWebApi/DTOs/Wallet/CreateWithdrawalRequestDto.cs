@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace BarcopoloWebApi.DTOs.Withdrawal
 {
@@ -6,6 +8,7 @@ namespace BarcopoloWebApi.DTOs.Withdrawal
     {
         [Required]
         [Range(1000, 10_000_000)]
+        [JsonConverter(typeof(CurrencyDecimalConverter))]
         public decimal Amount { get; set; }
 
         [Required]

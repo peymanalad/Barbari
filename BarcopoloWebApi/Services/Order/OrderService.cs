@@ -8,6 +8,7 @@ using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.Services.Order;
+using Domain.Orders;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
@@ -17,16 +18,18 @@ public class OrderService : IOrderService
     private readonly IFrequentAddressService _frequentAddressService;
     private readonly ILogger<OrderService> _logger;
     private readonly IMapper _mapper;
+    private readonly OrderStateMachine _stateMachine;
     private const int MaxPageSize = 100;
 
 
 
-    public OrderService(DataBaseContext context, ILogger<OrderService> logger, IFrequentAddressService frequentAddressService, IMapper mapper)
+    public OrderService(DataBaseContext context, ILogger<OrderService> logger, IFrequentAddressService frequentAddressService, IMapper mapper, OrderStateMachine stateMachine)
     {
         _context = context;
         _logger = logger;
         _frequentAddressService = frequentAddressService;
         _mapper = mapper;
+        _stateMachine = stateMachine;
     }
 
     public async Task<OrderDto> CreateAsync(CreateOrderDto dto, long currentUserId)
@@ -636,47 +639,51 @@ public class OrderService : IOrderService
 
             var currentStatus = order.Status;
             var newStatus = dto.NewStatus;
+            var changed = _stateMachine.TryChangeStatus(order, newStatus, isPrivileged, isDriver, isOwner);
 
-            if ((int)newStatus < (int)currentStatus && !isPrivileged)
+            //if ((int)newStatus < (int)currentStatus && !isPrivileged)
+            if (!changed)
             {
-                _logger.LogWarning("کاربر {UserId} تلاش کرد وضعیت سفارش {OrderId} را از {CurrentStatus} به {NewStatus} برگرداند.", currentUserId, orderId, currentStatus, newStatus);
-                throw new InvalidOperationException("امکان بازگشت وضعیت وجود ندارد.");
-            }
+                //    _logger.LogWarning("کاربر {UserId} تلاش کرد وضعیت سفارش {OrderId} را از {CurrentStatus} به {NewStatus} برگرداند.", currentUserId, orderId, currentStatus, newStatus);
+                //    throw new InvalidOperationException("امکان بازگشت وضعیت وجود ندارد.");
+                //}
 
-            if (currentStatus == newStatus)
-            {
-                _logger.LogInformation("وضعیت فعلی سفارش {OrderId} با وضعیت جدید یکسان است ({Status}).", orderId, currentStatus);
+                //if (currentStatus == newStatus)
+                //{
+                //    _logger.LogInformation("وضعیت فعلی سفارش {OrderId} با وضعیت جدید یکسان است ({Status}).", orderId, currentStatus);
+                _logger.LogInformation("وضعیت فعلی سفارش {OrderId} با وضعیت جدید یکسان است ({Status}).", orderId, newStatus);
                 return;
             }
 
-            if (!isPrivileged)
+            //if (!isPrivileged)
+            if (newStatus == OrderStatus.Delivered && order.DeliveryTime != null)
             {
-                if (isDriver)
-                {
-                    if (!IsDriverStatusTransitionAllowed(currentStatus, newStatus))
-                        throw new UnauthorizedAccessAppException("شما مجاز به این تغییر وضعیت نیستید.");
-                }
-                else if (isOwner)
-                {
-                    if (newStatus != OrderStatus.Delivered)
-                        throw new UnauthorizedAccessAppException("شما فقط مجاز به تغییر وضعیت به 'Delivered' هستید.");
-                }
-                else
-                {
-                    throw new UnauthorizedAccessAppException("شما مجاز به تغییر وضعیت این سفارش نیستید.");
-                }
-            }
+            //    if (isDriver)
+            //    {
+            //        if (!IsDriverStatusTransitionAllowed(currentStatus, newStatus))
+            //            throw new UnauthorizedAccessAppException("شما مجاز به این تغییر وضعیت نیستید.");
+            //    }
+            //    else if (isOwner)
+            //    {
+            //        if (newStatus != OrderStatus.Delivered)
+            //            throw new UnauthorizedAccessAppException("شما فقط مجاز به تغییر وضعیت به 'Delivered' هستید.");
+            //    }
+            //    else
+            //    {
+            //        throw new UnauthorizedAccessAppException("شما مجاز به تغییر وضعیت این سفارش نیستید.");
+            //    }
+            //}
 
-            if (newStatus == OrderStatus.Cancelled && (int)currentStatus >= (int)OrderStatus.Assigned && !isPrivileged)
-            {
-                throw new UnauthorizedAccessAppException("شما مجاز به لغو سفارش در این وضعیت نیستید.");
-            }
+            //if (newStatus == OrderStatus.Cancelled && (int)currentStatus >= (int)OrderStatus.Assigned && !isPrivileged)
+            //{
+            //    throw new UnauthorizedAccessAppException("شما مجاز به لغو سفارش در این وضعیت نیستید.");
+            //}
 
-            order.Status = newStatus;
+            //order.Status = newStatus;
 
-            if (newStatus == OrderStatus.Delivered && order.DeliveryTime == null)
-            {
-                order.DeliveryTime = DateTime.UtcNow;
+            //if (newStatus == OrderStatus.Delivered && order.DeliveryTime == null)
+            //{
+            //    order.DeliveryTime = DateTime.UtcNow;
                 _logger.LogInformation("زمان تحویل برای سفارش {OrderId} ثبت شد.", orderId);
             }
 
@@ -1106,11 +1113,11 @@ public class OrderService : IOrderService
         return changed;
     }
 
-    private bool IsDriverStatusTransitionAllowed(OrderStatus current, OrderStatus next)
-    {
-        return (current == OrderStatus.Assigned && next == OrderStatus.Loading)
-               || (current == OrderStatus.Loading && next == OrderStatus.InProgress)
-               || (current == OrderStatus.InProgress && next == OrderStatus.Unloading);
-    }
+    //private bool IsDriverStatusTransitionAllowed(OrderStatus current, OrderStatus next)
+    //{
+    //    return (current == OrderStatus.Assigned && next == OrderStatus.Loading)
+    //           || (current == OrderStatus.Loading && next == OrderStatus.InProgress)
+    //           || (current == OrderStatus.InProgress && next == OrderStatus.Unloading);
+    //}
 
 }

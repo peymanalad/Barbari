@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using BarcopoloWebApi.Enums;
 
 namespace BarcopoloWebApi.Entities
@@ -13,7 +14,8 @@ namespace BarcopoloWebApi.Entities
         [Required]
         public PaymentMethodType PaymentMethod { get; set; }
 
-        [Required, Range(0.01, double.MaxValue)]
+        [Required, Range(1, double.MaxValue)]
+        [Column(TypeName = "decimal(18,0)")]
         public decimal Amount { get; set; }
 
         public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
@@ -30,7 +32,7 @@ namespace BarcopoloWebApi.Entities
         public string GetPaymentSummary()
         {
             // return $"{PaymentDate.ToShortDateString()} | {PaymentType} | {Amount:C}"; // قدیمی
-            return $"{PaymentDate.ToShortDateString()} | {PaymentMethod.ToString()} | {Amount:C}"; // جدید
+            return $"{PaymentDate.ToShortDateString()} | {PaymentMethod} | {Amount.ToRial()}";
         }
     }
 }

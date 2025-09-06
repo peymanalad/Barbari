@@ -29,6 +29,7 @@ using Microsoft.AspNetCore.Identity;
 using AutoMapper;
 using BarcopoloWebApi.Infrastructure.Middleware;
 using System.Threading.RateLimiting;
+using Domain.Orders;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -136,6 +137,7 @@ builder.Services.AddScoped<IMembershipService, MembershipService>();
 builder.Services.AddScoped<IOrganizationCargoTypeService, OrganizationCargoTypeService>();
 builder.Services.AddScoped<ISubOrganizationService, SubOrganizationService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<OrderStateMachine>();
 builder.Services.AddScoped<ICargoService, CargoService>();
 builder.Services.AddScoped<IOrderEventService, OrderEventService>();
 builder.Services.AddScoped<ICargoTypeService, CargoTypeService>();
