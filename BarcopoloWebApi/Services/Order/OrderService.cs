@@ -7,6 +7,7 @@ using BarcopoloWebApi.DTOs.Payment;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using BarcopoloWebApi.Services.Order;
 using Domain.Orders;
 using Microsoft.EntityFrameworkCore;
@@ -108,7 +109,7 @@ public class OrderService : IOrderService
             await _context.SaveChangesAsync();
 
             freq.UsageCount++;
-            freq.LastUsed = DateTime.UtcNow;
+            freq.LastUsed = TehranDateTime.Now;
         }
         else if (dto.IsManualOrigin)
         {
@@ -170,7 +171,7 @@ public class OrderService : IOrderService
             await _context.SaveChangesAsync();
 
             freq.UsageCount++;
-            freq.LastUsed = DateTime.UtcNow;
+            freq.LastUsed = TehranDateTime.Now;
         }
         else if (dto.IsManualDestination)
         {
@@ -226,7 +227,7 @@ public class OrderService : IOrderService
             BranchId = dto.BranchId,
             OriginAddressId = originAddress.Id,
             DestinationAddress = destinationAddress.FullAddress,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = TehranDateTime.Now,
             Status = OrderStatus.Pending,
             TrackingNumber = trackingNumber,
             Fare = dto.Fare,
@@ -513,7 +514,7 @@ public class OrderService : IOrderService
             {
                 OrderId = order.Id,
                 Status = order.Status,
-                EventDateTime = DateTime.UtcNow,
+                EventDateTime = TehranDateTime.Now,
                 Remarks = "اطلاعات سفارش به‌روزرسانی شد.",
                 ChangedByPersonId = currentUserId
             });
@@ -601,7 +602,7 @@ public class OrderService : IOrderService
         {
             OrderId = order.Id,
             Status = OrderStatus.Cancelled,
-            EventDateTime = DateTime.UtcNow,
+            EventDateTime = TehranDateTime.Now,
             ChangedByPersonId = currentUserId,
             Remarks = cancellationReason ?? "لغو سفارش توسط کاربر"
         });
@@ -658,32 +659,32 @@ public class OrderService : IOrderService
             //if (!isPrivileged)
             if (newStatus == OrderStatus.Delivered && order.DeliveryTime != null)
             {
-            //    if (isDriver)
-            //    {
-            //        if (!IsDriverStatusTransitionAllowed(currentStatus, newStatus))
-            //            throw new UnauthorizedAccessAppException("شما مجاز به این تغییر وضعیت نیستید.");
-            //    }
-            //    else if (isOwner)
-            //    {
-            //        if (newStatus != OrderStatus.Delivered)
-            //            throw new UnauthorizedAccessAppException("شما فقط مجاز به تغییر وضعیت به 'Delivered' هستید.");
-            //    }
-            //    else
-            //    {
-            //        throw new UnauthorizedAccessAppException("شما مجاز به تغییر وضعیت این سفارش نیستید.");
-            //    }
-            //}
+                //    if (isDriver)
+                //    {
+                //        if (!IsDriverStatusTransitionAllowed(currentStatus, newStatus))
+                //            throw new UnauthorizedAccessAppException("شما مجاز به این تغییر وضعیت نیستید.");
+                //    }
+                //    else if (isOwner)
+                //    {
+                //        if (newStatus != OrderStatus.Delivered)
+                //            throw new UnauthorizedAccessAppException("شما فقط مجاز به تغییر وضعیت به 'Delivered' هستید.");
+                //    }
+                //    else
+                //    {
+                //        throw new UnauthorizedAccessAppException("شما مجاز به تغییر وضعیت این سفارش نیستید.");
+                //    }
+                //}
 
-            //if (newStatus == OrderStatus.Cancelled && (int)currentStatus >= (int)OrderStatus.Assigned && !isPrivileged)
-            //{
-            //    throw new UnauthorizedAccessAppException("شما مجاز به لغو سفارش در این وضعیت نیستید.");
-            //}
+                //if (newStatus == OrderStatus.Cancelled && (int)currentStatus >= (int)OrderStatus.Assigned && !isPrivileged)
+                //{
+                //    throw new UnauthorizedAccessAppException("شما مجاز به لغو سفارش در این وضعیت نیستید.");
+                //}
 
-            //order.Status = newStatus;
+                //order.Status = newStatus;
 
-            //if (newStatus == OrderStatus.Delivered && order.DeliveryTime == null)
-            //{
-            //    order.DeliveryTime = DateTime.UtcNow;
+                //if (newStatus == OrderStatus.Delivered && order.DeliveryTime == null)
+                //{
+                order.DeliveryTime = TehranDateTime.Now;
                 _logger.LogInformation("زمان تحویل برای سفارش {OrderId} ثبت شد.", orderId);
             }
 
@@ -691,7 +692,7 @@ public class OrderService : IOrderService
             {
                 OrderId = order.Id,
                 Status = newStatus,
-                EventDateTime = DateTime.UtcNow,
+                EventDateTime = TehranDateTime.Now,
                 ChangedByPersonId = currentUserId,
                 Remarks = dto.Remarks ?? $"وضعیت به '{newStatus}' تغییر یافت."
             });
@@ -749,7 +750,7 @@ public class OrderService : IOrderService
             OrderId = order.Id,
             Status = order.Status,
             Remarks = dto.Remarks ?? "نقش‌های سفارش تغییر یافت.",
-            EventDateTime = DateTime.UtcNow,
+            EventDateTime = TehranDateTime.Now,
             ChangedByPersonId = currentUserId
         };
 
@@ -901,7 +902,7 @@ public class OrderService : IOrderService
     }
 
     private string GenerateTrackingNumber()
-        => $"TRK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..5].ToUpper()}";
+                => $"TRK-{TehranDateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..5].ToUpper()}";
 
 
     private async Task<Address> DetermineOriginAddressAsync(CreateOrderDto dto)
@@ -1066,7 +1067,9 @@ public class OrderService : IOrderService
             {
                 Id = p.Id,
                 Amount = p.Amount,
-                TransactionId = p.TransactionId
+                TransactionId = p.TransactionId,
+                PaymentType = p.PaymentMethod,
+                PaymentDate = p.PaymentDate
             }).ToList(),
             Events = order.Events.Select(e => new OrderEventDto
             {

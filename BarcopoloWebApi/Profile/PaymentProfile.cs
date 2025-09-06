@@ -7,6 +7,7 @@ public class PaymentProfile : Profile
 {
     public PaymentProfile()
     {
-        CreateMap<Payment, PaymentDto>();
+        CreateMap<Payment, PaymentDto>()
+            .ForMember(dest => dest.PaymentType, opt => opt.MapFrom(src => src.PaymentMethod));
     }
 }

@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.Person;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using BarcopoloWebApi.Services.Person;
 using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Identity;
@@ -69,7 +70,7 @@ namespace BarcopoloWebApi.Services
                 PhoneNumber = dto.PhoneNumber,
                 NationalCode = dto.NationalCode,
                 Role = SystemRole.user,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = TehranDateTime.Now,
                 IsActive = true
             };
 

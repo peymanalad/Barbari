@@ -1,4 +1,5 @@
 ﻿using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -30,7 +31,7 @@ namespace BarcopoloWebApi.Entities
         public DateTime? DeliveryTime { get; set; }
 
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = TehranDateTime.Now;
 
         [MaxLength(1000)]
         public string? Details { get; set; }

@@ -30,6 +30,7 @@ using AutoMapper;
 using BarcopoloWebApi.Infrastructure.Middleware;
 using System.Threading.RateLimiting;
 using Domain.Orders;
+using BarcopoloWebApi.Helper;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +61,7 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.Converters.Add(new TehranDateTimeConverter());
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

@@ -1,5 +1,6 @@
 ﻿using BarcopoloWebApi.DTOs.Auth;
 using BarcopoloWebApi.Extensions;
+using BarcopoloWebApi.Helper;
 using BarcopoloWebApi.Services.Auth;
 using BarcopoloWebApi.Services.Token;
 using Microsoft.AspNetCore.Authorization;
@@ -68,7 +69,7 @@ namespace BarcopoloWebApi.Controllers
                 return BadRequest(ModelState);
 
             var userToken = _tokenRepo.FindRefreshTokenAsync(dto.RefreshToken);
-            if (userToken == null || userToken.Result.TokenExp < DateTime.UtcNow)
+            if (userToken == null || userToken.Result.TokenExp < TehranDateTime.Now)
                 return Unauthorized(new { error = "توکن نامعتبر یا منقضی شده است" });
 
             _tokenRepo.DeleteTokenAsync(dto.RefreshToken);

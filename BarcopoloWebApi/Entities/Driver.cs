@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -41,8 +42,7 @@ namespace BarcopoloWebApi.Entities
 
         public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 
-        public bool IsLicenseValid() => LicenseExpiryDate > DateTime.UtcNow;
-
+        public bool IsLicenseValid() => LicenseExpiryDate > TehranDateTime.Now;
         public bool HasActiveInsurance() => !string.IsNullOrWhiteSpace(InsuranceNumber);
     }
 }

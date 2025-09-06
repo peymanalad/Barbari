@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -18,7 +19,7 @@ namespace BarcopoloWebApi.Entities
         [Column(TypeName = "decimal(18,0)")]
         public decimal Amount { get; set; }
 
-        public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
+        public DateTime PaymentDate { get; set; } = TehranDateTime.Now;
 
         [Required, MaxLength(100)]
         public string TransactionId { get; set; }

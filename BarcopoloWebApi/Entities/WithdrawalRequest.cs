@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -25,7 +26,7 @@ namespace BarcopoloWebApi.Entities
         [Required]
         public WithdrawalRequestStatus Status { get; set; } = WithdrawalRequestStatus.Pending;
 
-        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+        public DateTime RequestedAt { get; set; } = TehranDateTime.Now;
         public DateTime? ReviewedAt { get; set; }
 
         // Navigation properties

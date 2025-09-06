@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.ComponentModel.DataAnnotations;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -15,8 +16,7 @@ namespace BarcopoloWebApi.Entities
         [MaxLength(1000)]
         public string Comment { get; set; }
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+        public DateTime CreatedAt { get; set; } = TehranDateTime.Now;
         public virtual Order Order { get; set; }
 
 

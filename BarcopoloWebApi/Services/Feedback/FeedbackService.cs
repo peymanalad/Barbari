@@ -2,6 +2,7 @@
 using BarcopoloWebApi.DTOs.Feedback;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -45,7 +46,7 @@ namespace BarcopoloWebApi.Services
                 OrderId = dto.OrderId,
                 Rating = dto.Rating,
                 Comment = dto.Comment ?? string.Empty,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TehranDateTime.Now
             };
 
             _context.Feedbacks.Add(feedback);

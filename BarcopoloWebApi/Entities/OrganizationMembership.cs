@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -17,8 +18,7 @@ namespace BarcopoloWebApi.Entities
         [Required]
         public SystemRole Role { get; set; }
 
-        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
-
+        public DateTime JoinedAt { get; set; } = TehranDateTime.Now;
         public long? BranchId { get; set; }
 
 

@@ -1,4 +1,5 @@
 ﻿using BarcopoloWebApi.Entities;
+using BarcopoloWebApi.Helper;
 using System.ComponentModel.DataAnnotations;
 
 public class FrequentAddress
@@ -35,7 +36,7 @@ public class FrequentAddress
 
     public int UsageCount { get; set; } = 1;
 
-    public DateTime LastUsed { get; set; } = DateTime.UtcNow;
+    public DateTime LastUsed { get; set; } = TehranDateTime.Now;
 
     public virtual Person Person { get; set; }
     public virtual Organization Organization { get; set; }

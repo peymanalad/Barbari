@@ -4,6 +4,7 @@ using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.Extensions;
+using BarcopoloWebApi.Helper;
 using BarcopoloWebApi.Services.Person;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -110,7 +111,7 @@ namespace BarcopoloWebApi.Services
                     PhoneNumber = dto.PhoneNumber,
                     NationalCode = dto.NationalCode,
                     Role = SystemRole.user,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TehranDateTime.Now,
                     IsActive = true,
                 };
 
@@ -137,7 +138,7 @@ namespace BarcopoloWebApi.Services
                 OrganizationId = dto.OrganizationId,
                 BranchId = dto.BranchId,
                 Role = targetRoleEnum,
-                JoinedAt = DateTime.UtcNow
+                JoinedAt = TehranDateTime.Now
             };
 
             await _context.OrganizationMemberships.AddAsync(membership);

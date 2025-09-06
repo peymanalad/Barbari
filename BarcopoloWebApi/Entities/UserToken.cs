@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BarcopoloWebApi.Helper;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace BarcopoloWebApi.Entities
@@ -27,10 +28,8 @@ namespace BarcopoloWebApi.Entities
         public virtual Person Person { get; set; }
 
 
-        public bool IsTokenExpired() => DateTime.UtcNow >= TokenExp;
-
-        public bool IsRefreshTokenExpired() => DateTime.UtcNow >= RefreshTokenExp;
-
+        public bool IsTokenExpired() => TehranDateTime.Now >= TokenExp;
+        public bool IsRefreshTokenExpired() => TehranDateTime.Now >= RefreshTokenExp;
         public bool IsActive() => !IsTokenExpired() && !IsRefreshTokenExpired();
     }
 }

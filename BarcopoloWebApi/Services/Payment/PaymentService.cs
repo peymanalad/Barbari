@@ -2,6 +2,7 @@
 using BarcopoloWebApi.DTOs.Payment;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using BarcopoloWebApi.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,12 +35,17 @@ public class PaymentService : IPaymentService
         if (transactionExists)
             throw new InvalidOperationException("این شناسه تراکنش قبلاً ثبت شده است.");
 
+        var paymentDate = dto.PaymentDate;
+        if (!paymentDate.HasValue || paymentDate.Value == DateTime.MinValue)
+            paymentDate = DateTime.UtcNow;
+
+
         var payment = new Payment
         {
             OrderId = dto.OrderId,
             PaymentMethod = dto.PaymentType,
             Amount = dto.Amount,
-            PaymentDate = dto.PaymentDate ?? DateTime.UtcNow,
+            PaymentDate = paymentDate.Value,
             TransactionId = dto.TransactionId
         };
 

@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.Auth;
 using BarcopoloWebApi.DTOs.Token;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Extensions;
+using BarcopoloWebApi.Helper;
 using BarcopoloWebApi.Services.Token;
 using BarcopoloWebApi.Services.WalletManagement;
 using Microsoft.AspNetCore.Http;
@@ -58,7 +59,7 @@ namespace BarcopoloWebApi.Services.Auth
                 LastName = dto.LastName,
                 PhoneNumber = dto.PhoneNumber,
                 NationalCode = dto.NationalCode,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = TehranDateTime.Now,
                 IsActive = true
             };
 
@@ -78,7 +79,7 @@ namespace BarcopoloWebApi.Services.Auth
                 FullName = person.GetFullName(),
                 Token = token.Token,
                 RefreshToken = token.RefreshToken,
-                ExpireAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["JwtConfig:expires"]))
+                ExpireAt = TehranDateTime.Now.AddMinutes(int.Parse(_config["JwtConfig:expires"]))
             };
         }
 
@@ -112,7 +113,7 @@ namespace BarcopoloWebApi.Services.Auth
                 FullName = person.GetFullName(),
                 Token = token.Token,
                 RefreshToken = token.RefreshToken,
-                ExpireAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["JwtConfig:expires"]))
+                ExpireAt = TehranDateTime.Now.AddMinutes(int.Parse(_config["JwtConfig:expires"]))
             };
         }
 
@@ -164,13 +165,13 @@ namespace BarcopoloWebApi.Services.Auth
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtConfig:key"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expire = DateTime.UtcNow.AddMinutes(int.Parse(_config["JwtConfig:expires"]));
+            var expire = TehranDateTime.Now.AddMinutes(int.Parse(_config["JwtConfig:expires"]));
 
             var jwt = new JwtSecurityToken(
                 issuer: _config["JwtConfig:issuer"],
                 audience: _config["JwtConfig:audience"],
                 claims: claims,
-                notBefore: DateTime.UtcNow,
+                notBefore: TehranDateTime.Now,
                 expires: expire,
                 signingCredentials: credentials);
 
@@ -183,7 +184,7 @@ namespace BarcopoloWebApi.Services.Auth
                 TokenHash = SecurityHelper.GetSha256Hash(tokenString),
                 TokenExp = expire,
                 RefreshTokenHash = SecurityHelper.GetSha256Hash(refreshToken),
-                RefreshTokenExp = DateTime.UtcNow.AddDays(30),
+                RefreshTokenExp = TehranDateTime.Now.AddDays(30),
                 MobileModel = ""
             });
 

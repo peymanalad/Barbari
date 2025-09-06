@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -13,8 +14,7 @@ namespace BarcopoloWebApi.Entities
         [Required]
         public OrderStatus Status { get; set; }
 
-        public DateTime EventDateTime { get; set; } = DateTime.UtcNow;
-
+        public DateTime EventDateTime { get; set; } = TehranDateTime.Now;
         public long? ChangedByPersonId { get; set; }
 
         [MaxLength(1000)]

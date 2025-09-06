@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.Entities
 {
@@ -27,7 +28,7 @@ namespace BarcopoloWebApi.Entities
 
         public long? PersonalWalletId { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = TehranDateTime.Now;
 
         [Required, JsonIgnore]
         [MaxLength(255)]

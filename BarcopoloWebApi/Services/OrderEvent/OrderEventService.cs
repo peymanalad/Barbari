@@ -4,6 +4,7 @@ using BarcopoloWebApi.DTOs.OrderEvent;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using Microsoft.EntityFrameworkCore;
 
 namespace BarcopoloWebApi.Services.OrderEvent
@@ -86,7 +87,7 @@ namespace BarcopoloWebApi.Services.OrderEvent
                 Status = newStatus,
                 Remarks = dto.Remarks?.Trim(),
                 ChangedByPersonId = currentUserId,
-                EventDateTime = DateTime.UtcNow
+                EventDateTime = TehranDateTime.Now
             };
 
             _context.OrderEvents.Add(orderEvent);

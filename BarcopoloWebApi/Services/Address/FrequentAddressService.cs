@@ -1,6 +1,7 @@
 ﻿using BarcopoloWebApi.Data;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using Microsoft.EntityFrameworkCore;
 
 public class FrequentAddressService : IFrequentAddressService
@@ -25,7 +26,7 @@ public class FrequentAddressService : IFrequentAddressService
         if (existing != null)
         {
             existing.UsageCount++;
-            existing.LastUsed = DateTime.UtcNow;
+            existing.LastUsed = TehranDateTime.Now;
         }
         else
         {
@@ -43,7 +44,7 @@ public class FrequentAddressService : IFrequentAddressService
                 Unit = address.Unit,
                 AddressType = addressType,
                 UsageCount = 1,
-                LastUsed = DateTime.UtcNow
+                LastUsed = TehranDateTime.Now
             });
         }
 

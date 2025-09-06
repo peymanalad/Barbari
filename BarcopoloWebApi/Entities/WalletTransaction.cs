@@ -1,4 +1,5 @@
 ﻿using BarcopoloWebApi.Enums;
+using BarcopoloWebApi.Helper;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -30,8 +31,7 @@ namespace BarcopoloWebApi.Entities
 
         public string? Description { get; set; }
 
-        public DateTime PerformedAt { get; set; } = DateTime.UtcNow;
-
+        public DateTime PerformedAt { get; set; } = TehranDateTime.Now;
 
         public virtual Wallet Wallet { get; set; }
         public virtual Person? PerformedByPerson { get; set; }

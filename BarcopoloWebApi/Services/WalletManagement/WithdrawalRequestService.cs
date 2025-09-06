@@ -3,6 +3,7 @@ using BarcopoloWebApi.DTOs.Withdrawal;
 using BarcopoloWebApi.Entities;
 using BarcopoloWebApi.Enums;
 using BarcopoloWebApi.Exceptions;
+using BarcopoloWebApi.Helper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -40,7 +41,7 @@ namespace BarcopoloWebApi.Services.WalletManagement
                 RequesterPersonId = currentUserId,
                 Status = WithdrawalRequestStatus.Pending,
                 DestinationBankAccount = dto.DestinationBankAccount,
-                RequestedAt = DateTime.UtcNow
+                RequestedAt = TehranDateTime.Now
             };
 
             _context.WithdrawalRequests.Add(request);
@@ -75,8 +76,7 @@ namespace BarcopoloWebApi.Services.WalletManagement
 
             request.Status = dto.Approved ? WithdrawalRequestStatus.Approved : WithdrawalRequestStatus.Rejected;
             request.ReviewedByAdminId = currentUserId;
-            request.ReviewedAt = DateTime.UtcNow;
-
+            request.ReviewedAt = TehranDateTime.Now;
             if (dto.Approved)
             {
                 if (request.SourceWallet.Balance < request.Amount)
@@ -92,7 +92,7 @@ namespace BarcopoloWebApi.Services.WalletManagement
                     TransactionType = TransactionType.Withdrawal,
                     Description = "برداشت از کیف پول",
                     PerformedByPersonId = currentUserId,
-                    PerformedAt = DateTime.UtcNow,
+                    PerformedAt = TehranDateTime.Now,
                     BalanceBefore = before,
                     BalanceAfter = request.SourceWallet.Balance
                 };

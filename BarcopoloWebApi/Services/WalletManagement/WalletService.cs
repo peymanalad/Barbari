@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BarcopoloWebApi.Exceptions;
 using BarcopoloWebApi.DTOs.Wallet;
+using BarcopoloWebApi.Helper;
 
 namespace BarcopoloWebApi.Services.WalletManagement
 {
@@ -110,7 +111,7 @@ namespace BarcopoloWebApi.Services.WalletManagement
                 TransactionType = TransactionType.Deposit,
                 Description = dto.Description ?? "شارژ کیف پول",
                 PerformedByPersonId = currentUserId,
-                PerformedAt = DateTime.UtcNow,
+                PerformedAt = TehranDateTime.Now,
                 BalanceBefore = before,
                 BalanceAfter = wallet.Balance
             };
@@ -176,6 +177,18 @@ namespace BarcopoloWebApi.Services.WalletManagement
                     throw new ForbiddenAccessException("این سفارش متعلق به این کاربر نیست.");
             }
 
+            var total = order.Fare + order.Insurance + order.Vat;
+            var paid = await _context.Payments
+                .Where(p => p.OrderId == orderId)
+                .SumAsync(p => p.Amount);
+            var remaining = total - paid;
+
+            if (remaining <= 0)
+                throw new InvalidOperationException("این سفارش قبلاً به طور کامل پرداخت شده است.");
+
+            if (amount > remaining)
+                throw new InvalidOperationException("مبلغ پرداخت بیشتر از مبلغ باقی‌مانده سفارش است.");
+
             var balanceBefore = wallet.Balance;
             wallet.Balance -= amount;
 
@@ -186,7 +199,7 @@ namespace BarcopoloWebApi.Services.WalletManagement
                 TransactionType = TransactionType.Payment,
                 Description = $"پرداخت برای سفارش شماره {orderId}",
                 PerformedByPersonId = currentUserId,
-                PerformedAt = DateTime.UtcNow,
+                PerformedAt = TehranDateTime.Now,
                 BalanceBefore = balanceBefore,
                 BalanceAfter = wallet.Balance
             };
