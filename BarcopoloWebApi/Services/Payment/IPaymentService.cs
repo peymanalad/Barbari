@@ -10,5 +10,6 @@ namespace BarcopoloWebApi.Services
         Task<PaymentDto> GetByIdAsync(long id, long currentUserId);
         Task<IEnumerable<PaymentDto>> GetByOrderIdAsync(long orderId, long currentUserId);
         Task<decimal> GetRemainingAmountAsync(long orderId, long currentUserId);
+        Task<PaymentSummaryDto> GetOrderPaymentSummaryAsync(long orderId, long currentUserId);
     }
 }

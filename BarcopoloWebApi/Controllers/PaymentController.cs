@@ -73,5 +73,13 @@ namespace BarcopoloWebApi.Controllers
             var remaining = await _paymentService.GetRemainingAmountAsync(orderId, CurrentUserId);
             return Ok(new { orderId, remainingAmount = remaining });
         }
+
+
+        [HttpGet("summary/{orderId}")]
+        public async Task<IActionResult> GetSummary(long orderId)
+        {
+            var summary = await _paymentService.GetOrderPaymentSummaryAsync(orderId, CurrentUserId);
+            return Ok(summary);
+        }
     }
 }

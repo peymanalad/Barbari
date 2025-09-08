@@ -187,6 +187,42 @@ public class PaymentService : IPaymentService
         return remaining > 0 ? remaining : 0;
     }
 
+    public async Task<PaymentSummaryDto> GetOrderPaymentSummaryAsync(long orderId, long currentUserId)
+    {
+        _logger.LogInformation("دریافت خلاصه پرداخت سفارش {OrderId} توسط کاربر {UserId}", orderId, currentUserId);
+
+        var order = await _context.Orders
+            .Include(o => o.Organization)
+            .FirstOrDefaultAsync(o => o.Id == orderId)
+            ?? throw new NotFoundException("سفارش یافت نشد.");
+
+        var currentUser = await _context.Persons.FindAsync(currentUserId)
+            ?? throw new NotFoundException("کاربر جاری یافت نشد.");
+
+        await OrderAccessGuard.EnsureUserCanAccessOrderAsync(order, currentUser, _context);
+
+        decimal total = order.Fare + order.Insurance + order.Vat;
+
+        var payments = await _context.Payments
+            .Where(p => p.OrderId == orderId)
+            .OrderByDescending(p => p.PaymentDate)
+            .ToListAsync();
+
+        decimal paid = payments.Sum(p => p.Amount);
+        decimal remaining = total - paid;
+        if (remaining < 0)
+            remaining = 0;
+
+        return new PaymentSummaryDto
+        {
+            OrderId = orderId,
+            TotalAmount = total,
+            PaidAmount = paid,
+            RemainingAmount = remaining,
+            Payments = payments.Select(MapToDto).ToList()
+        };
+    }
+
     private static PaymentDto MapToDto(Payment payment) => new PaymentDto
     {
         Id = payment.Id,
