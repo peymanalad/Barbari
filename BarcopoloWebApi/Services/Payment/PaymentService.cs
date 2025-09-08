@@ -35,6 +35,14 @@ public class PaymentService : IPaymentService
         if (transactionExists)
             throw new InvalidOperationException("این شناسه تراکنش قبلاً ثبت شده است.");
 
+        decimal total = order.Fare + order.Insurance + order.Vat;
+        decimal paid = await _context.Payments
+            .Where(p => p.OrderId == dto.OrderId)
+            .SumAsync(p => p.Amount);
+        decimal remaining = total - paid;
+        if (dto.Amount > remaining)
+            throw new BadRequestException("مبلغ پرداخت بیشتر از مبلغ باقی‌مانده سفارش است.");
+
         var paymentDate = dto.PaymentDate;
         if (!paymentDate.HasValue || paymentDate.Value == DateTime.MinValue)
             paymentDate = DateTime.UtcNow;
@@ -111,7 +119,16 @@ public class PaymentService : IPaymentService
         if (dto.PaymentType.HasValue)
             payment.PaymentMethod = dto.PaymentType.Value;
         if (dto.Amount.HasValue)
+        {
+            decimal total = payment.Order.Fare + payment.Order.Insurance + payment.Order.Vat;
+            decimal paid = await _context.Payments
+                .Where(p => p.OrderId == payment.OrderId && p.Id != id)
+                .SumAsync(p => p.Amount);
+            decimal remaining = total - paid;
+            if (dto.Amount.Value > remaining)
+                throw new BadRequestException("مبلغ پرداخت بیشتر از مبلغ باقی‌مانده سفارش است.");
             payment.Amount = dto.Amount.Value;
+        }
         if (!string.IsNullOrWhiteSpace(dto.TransactionId))
             payment.TransactionId = dto.TransactionId;
 
